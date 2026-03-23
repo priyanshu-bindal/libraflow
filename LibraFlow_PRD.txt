@@ -1,0 +1,1028 @@
++-----------------------------------------------------------------------+
+| PRODUCT REQUIREMENTS DOCUMENT                                         |
+|                                                                       |
+| Library Management System                                             |
+|                                                                       |
+| LibraFlow — Next.js Full-Stack Web Application                        |
+|                                                                       |
+| Version 1.0 · 2025                                                    |
++-----------------------------------------------------------------------+
+
+  ----------------- ----------------- ----------------- -----------------
+  Next.js 15        TypeScript 5      Prisma ORM        PostgreSQL
+
+  ----------------- ----------------- ----------------- -----------------
+
+  ----------------- ----------------- ----------------- -----------------
+  Tailwind CSS v4   shadcn/ui         NextAuth.js       Zustand
+
+  ----------------- ----------------- ----------------- -----------------
+
+1. Executive Summary
+
+LibraFlow is a premium, full-stack Library Management System (LMS) built
+with Next.js 15 and the modern React ecosystem. It replaces error-prone
+manual library workflows — book issuance, returns, cataloguing, and fine
+calculation — with a secure, real-time, role-based web application that
+serves academic institutions and small-to-medium libraries.
+
+The system is grounded in the research paper 'Library Management System'
+(Kapoor et al., Chandigarh University) and is designed to fulfil every
+architectural and functional requirement described therein: a three-tier
+layered architecture (Presentation → Application → Database),
+object-oriented modularity, SQL-backed relational data integrity,
+role-based access control, and a user-friendly graphical interface.
+
+  -----------------------------------------------------------------------
+  Attribute        Value
+  ---------------- ------------------------------------------------------
+  Product Name     LibraFlow — Library Management System
+
+  Version          1.0 (MVP)
+
+  Primary Stack    Next.js 15 · TypeScript 5 · Prisma · PostgreSQL ·
+                   Tailwind CSS v4
+
+  Target Users     Librarians (Admin), Students/Faculty (Users), Super
+                   Admin (System Owner)
+
+  Deployment       Vercel (Edge) + Neon/Supabase PostgreSQL
+
+  Research Source  Kapoor et al., Chandigarh University — Library
+                   Management System
+  -----------------------------------------------------------------------
+
+2. Technology Stack — Complete Decisions
+
+Every technology choice is deliberate, selecting the latest stable,
+production-grade tooling for performance, DX, and long-term
+maintainability.
+
+2.1 Framework — Next.js 15 (App Router)
+
++-----------------------------------------------------------------------+
+| Why Next.js 15 App Router?                                            |
+|                                                                       |
+| Next.js 15 with the App Router provides React Server Components (RSC) |
+| by default, meaning data-heavy pages like book catalogues and         |
+| transaction histories are rendered on the server — reducing bundle    |
+| size and delivering sub-100ms TTFB. Server Actions replace REST       |
+| boilerplate entirely for form mutations. The file-system router +     |
+| layouts give us nested UI (sidebar + main panel) trivially.           |
++-----------------------------------------------------------------------+
+
+-   React 19 + Server Components — zero-JS data pages
+
+-   Server Actions — type-safe mutations without API routes
+
+-   Parallel Routes + Intercepting Routes — modal book detail overlays
+
+-   Route Handlers — REST fallbacks for mobile / third-party
+    integrations
+
+-   Turbopack bundler (dev) — instant HMR even with large codebase
+
+2.2 Language — TypeScript 5 (strict mode)
+
+-   End-to-end type safety: DB schema → Prisma types → API → UI
+    components
+
+-   Strict null checks eliminate entire class of runtime bugs
+
+-   Path aliases (@/components, @/lib, @/types) for clean imports
+
+2.3 Database — PostgreSQL + Prisma ORM 6
+
++-----------------------------------------------------------------------+
+| Why Prisma?                                                           |
+|                                                                       |
+| Prisma generates a fully-typed client from your schema. Every query   |
+| returns TypeScript types — no manual DTO mapping. Prisma Migrate      |
+| provides version-controlled, reproducible schema migrations. Combined |
+| with Neon (serverless Postgres), connection pooling is handled at the |
+| edge automatically.                                                   |
++-----------------------------------------------------------------------+
+
+-   Prisma 6 — latest stable with improved relation queries & batch
+    transactions
+
+-   PostgreSQL 16 on Neon (serverless, instant branching for
+    dev/staging)
+
+-   Prisma Accelerate — global connection pooling + query-level caching
+
+-   Zod + Prisma-zod-generator — auto-generated validation schemas from
+    DB schema
+
+2.4 Authentication — NextAuth.js v5 (Auth.js)
+
+-   Credentials provider (email + bcrypt password) for librarians
+
+-   Google / GitHub OAuth for student single sign-on
+
+-   JWT sessions stored in secure httpOnly cookies
+
+-   Middleware-level route protection — no client-side redirects
+
+-   Role enum (SUPER_ADMIN | LIBRARIAN | USER) attached to session token
+
+2.5 Styling — Tailwind CSS v4 + shadcn/ui
+
++-----------------------------------------------------------------------+
+| Why shadcn/ui?                                                        |
+|                                                                       |
+| shadcn/ui components are NOT a library — they are copy-pasted source  |
+| code that lives inside your project. You own every component. Built   |
+| on Radix UI primitives (fully accessible, keyboard navigable) and     |
+| styled with Tailwind. This gives pixel-perfect control with zero      |
+| dependency lock-in.                                                   |
++-----------------------------------------------------------------------+
+
+-   Tailwind CSS v4 — CSS-first config, lightning Oxide engine,
+    container queries
+
+-   shadcn/ui — Dialog, Sheet, Table, Form, Select, Badge, Skeleton,
+    Toast, Command
+
+-   Framer Motion — page transitions, list animations, loading skeletons
+
+-   Lucide React — consistent icon set (1500+ icons, tree-shakeable)
+
+-   next-themes — dark / light / system theme without flash
+
+2.6 State Management — Zustand + TanStack Query
+
+-   Zustand v5 — lightweight global store (cart-style book-basket, UI
+    state)
+
+-   TanStack Query v5 — server state: caching, refetching, optimistic
+    updates
+
+-   React Hook Form + Zod — form state + validation without re-renders
+
+2.7 Supporting Libraries
+
+  ------------------------------------------------------------------------
+  Library                Version                  Purpose
+  ---------------------- ------------------------ ------------------------
+  date-fns               v4                       Due date calculation,
+                                                  fine period arithmetic
+
+  recharts               v2                       Analytics charts — issue
+                                                  volume, fine trends
+
+  react-email + Resend   latest                   Automated overdue /
+                                                  reminder emails
+
+  uploadthing            v7                       Book cover image uploads
+                                                  (S3-backed)
+
+  nuqs                   v2                       Type-safe URL search
+                                                  params (pagination,
+                                                  filters)
+
+  pdf-lib                v1                       Generate printable issue
+                                                  receipts / fine reports
+
+  @vercel/analytics      latest                   Real-user page
+                                                  performance monitoring
+  ------------------------------------------------------------------------
+
+3. System Architecture
+
+3.1 Three-Tier Layered Architecture
+
+The system mirrors the architectural design from the research paper —
+Presentation Layer, Application Layer, Database Layer — mapped directly
+onto Next.js conventions:
+
+  ------------------------------------------------------------------------
+  Layer              Research Paper         Next.js 15 Implementation
+  ------------------ ---------------------- ------------------------------
+  Presentation       GUI / Web-based        React Server Components +
+                     interface              Client Components + shadcn/ui
+
+  Application        OOP business logic,    Server Actions + Route
+                     borrowing rules, fine  Handlers + lib/services/
+                     computation            modules
+
+  Database           SQL RDBMS, normalised  PostgreSQL 16 + Prisma ORM +
+                     schema, indexed        Prisma Accelerate
+                     queries                
+
+  Security           Role-based access,     NextAuth.js v5 + Middleware +
+                     authenticated sessions RBAC guards
+  ------------------------------------------------------------------------
+
+3.2 Folder Structure
+
++-----------------------------------------------------------------------+
+| Project Root — /libraflow                                             |
+|                                                                       |
+| libraflow/ ├── app/ # Next.js App Router │ ├── (auth)/ # Route group  |
+| — login, register │ │ ├── login/page.tsx │ │ └── register/page.tsx │  |
+| ├── (dashboard)/ # Protected route group │ │ ├── layout.tsx #         |
+| Sidebar + header shell │ │ ├── dashboard/page.tsx # Analytics         |
+| overview │ │ ├── books/ │ │ │ ├── page.tsx # Catalogue —              |
+| server-rendered table │ │ │ ├── [id]/page.tsx # Book detail │ │ │ └── |
+| new/page.tsx # Add book form │ │ ├── members/ │ │ │ ├── page.tsx │ │  |
+| │ └── [id]/page.tsx │ │ ├── transactions/ │ │ │ ├── issue/page.tsx │  |
+| │ │ └── return/page.tsx │ │ └── fines/page.tsx │ └── api/ # Route     |
+| Handlers (REST fallback) │ ├── books/route.ts │ └──                   |
+| transactions/route.ts ├── components/ │ ├── ui/ # shadcn/ui           |
+| primitives (owned source) │ ├── books/ # BookCard, BookTable,         |
+| BookForm │ ├── members/ # MemberCard, MemberTable │ ├── transactions/ |
+| # IssueForm, ReturnForm, TransactionRow │ └── shared/ # Sidebar,      |
+| Topbar, ThemeToggle ├── lib/ │ ├── db.ts # Prisma client singleton │  |
+| ├── auth.ts # NextAuth config │ ├── validations/ # Zod schemas │ └──  |
+| services/ # bookService, memberService, fineService ├── prisma/ │ ├── |
+| schema.prisma # Source of truth — DB schema │ └── migrations/ ├──     |
+| actions/ # Server Actions (mutations) │ ├── book.actions.ts │ ├──     |
+| member.actions.ts │ ├── transaction.actions.ts │ └── fine.actions.ts  |
+| ├── hooks/ # Custom React hooks ├── store/ # Zustand stores ├──       |
+| types/ # Global TypeScript types └── middleware.ts # Route protection |
++-----------------------------------------------------------------------+
+
+3.3 Database Schema (Prisma)
+
+The schema directly implements the ER diagram from the research paper —
+USERS → TRANSACTIONS → BOOKS → FINES — with additional tables for
+CATEGORIES and RESERVATIONS.
+
++-----------------------------------------------------------------------+
+| prisma/schema.prisma                                                  |
+|                                                                       |
+| model User { id String @id @default(cuid()) name String email String  |
+| @unique passwordHash String role Role @default(USER) membershipId     |
+| String @unique @default(cuid()) phone String? address String?         |
+| createdAt DateTime @default(now()) transactions Transaction[]         |
+| reservations Reservation[] } model Book { id String @id               |
+| @default(cuid()) title String author String isbn String @unique       |
+| coverUrl String? totalCopies Int @default(1) availableCopies Int      |
+| @default(1) categoryId String category Category @relation(fields:     |
+| [categoryId], references: [id]) publishedYear Int? publisher String?  |
+| description String? transactions Transaction[] reservations           |
+| Reservation[] } model Transaction { id String @id @default(cuid())    |
+| userId String bookId String issueDate DateTime @default(now())        |
+| dueDate DateTime returnDate DateTime? status TransactionStatus        |
+| @default(ISSUED) user User @relation(fields: [userId], references:    |
+| [id]) book Book @relation(fields: [bookId], references: [id]) fine    |
+| Fine? } model Fine { id String @id @default(cuid()) transactionId     |
+| String @unique amount Decimal @db.Decimal(10, 2) paid Boolean         |
+| @default(false) paidAt DateTime? transaction Transaction              |
+| @relation(fields: [transactionId], references: [id]) } model Category |
+| { id String @id @default(cuid()) name String @unique books Book[] }   |
+| model Reservation { id String @id @default(cuid()) userId String      |
+| bookId String status ReservationStatus @default(PENDING) createdAt    |
+| DateTime @default(now()) user User @relation(fields: [userId],        |
+| references: [id]) book Book @relation(fields: [bookId], references:   |
+| [id]) } enum Role { SUPER_ADMIN LIBRARIAN USER } enum                 |
+| TransactionStatus { ISSUED RETURNED OVERDUE } enum ReservationStatus  |
+| { PENDING FULFILLED CANCELLED }                                       |
++-----------------------------------------------------------------------+
+
+4. Functional Requirements
+
+4.1 Authentication Module
+
+  --------------------------------------------------------------------------
+  ID     Feature                Description                    Role
+  ------ ---------------------- ------------------------------ -------------
+  F-01   Email/Password Login   bcrypt-hashed credentials, JWT All
+                                session                        
+
+  F-02   OAuth Login            Google / GitHub SSO for        USER
+                                students                       
+
+  F-03   Librarian Registration Admin creates librarian        SUPER_ADMIN
+                                accounts                       
+
+  F-04   Member Registration    Self-service sign-up with      USER
+                                email verification             
+
+  F-05   Forgot Password        Email OTP reset flow via       All
+                                Resend                         
+
+  F-06   Session Management     Auto-logout after 8hr idle,    All
+                                refresh tokens                 
+  --------------------------------------------------------------------------
+
+4.2 Book Catalogue Module
+
+  --------------------------------------------------------------------------
+  ID     Feature                Description                    Role
+  ------ ---------------------- ------------------------------ -------------
+  F-10   Add Book               Title, author, ISBN, category, LIBRARIAN
+                                copies, cover image upload     
+
+  F-11   Edit Book              Update metadata, adjust copy   LIBRARIAN
+                                count                          
+
+  F-12   Delete Book            Soft delete — archived, not    LIBRARIAN
+                                destroyed                      
+
+  F-13   Search Books           Full-text search: title,       All
+                                author, ISBN, category         
+
+  F-14   Filter & Sort          Category, availability, year,  All
+                                author — URL-persisted params  
+
+  F-15   Availability Badge     Real-time available /          All
+                                checked-out / reserved status  
+
+  F-16   Book Reservation       User reserves an unavailable   USER
+                                book; notified when free       
+  --------------------------------------------------------------------------
+
+4.3 Member Management Module
+
+  --------------------------------------------------------------------------
+  ID     Feature                Description                    Role
+  ------ ---------------------- ------------------------------ -------------
+  F-20   View Members           Paginated table with search +  LIBRARIAN
+                                filter by role/status          
+
+  F-21   Member Profile         Issue history, active loans,   LIBRARIAN /
+                                fine balance                   USER
+
+  F-22   Suspend Member         Block borrowing privileges;    LIBRARIAN
+                                reason logged                  
+
+  F-23   Borrowing Limit        Configurable max concurrent    LIBRARIAN
+                                loans (default: 3)             
+  --------------------------------------------------------------------------
+
+4.4 Issue & Return Transaction Module
+
+  --------------------------------------------------------------------------
+  ID     Feature                Description                    Role
+  ------ ---------------------- ------------------------------ -------------
+  F-30   Issue Book             Select member + book; auto-set LIBRARIAN
+                                due date (14 days default)     
+
+  F-31   Eligibility Check      Block issue if member has      LIBRARIAN
+                                unpaid fines or reached limit  
+
+  F-32   Return Book            Mark returned; trigger fine    LIBRARIAN
+                                calculation if overdue         
+
+  F-33   Renew Loan             Extend due date by N days if   LIBRARIAN /
+                                no reservation pending         USER
+
+  F-34   Issue Receipt          PDF receipt generated on       LIBRARIAN
+                                issue/return (pdf-lib)         
+
+  F-35   Transaction History    Paginated, filterable full     LIBRARIAN
+                                audit log                      
+  --------------------------------------------------------------------------
+
+4.5 Fine Management Module
+
+  --------------------------------------------------------------------------
+  ID     Feature                Description                    Role
+  ------ ---------------------- ------------------------------ -------------
+  F-40   Auto Fine Calculation  ₹2/day after due date;         System
+                                computed on return             
+
+  F-41   Fine Payment           Mark fine as paid; timestamp + LIBRARIAN
+                                receipt                        
+
+  F-42   Fine Waiver            Partial / full waiver with     LIBRARIAN
+                                mandatory reason               
+
+  F-43   Overdue Reminders      Automated email 3 days         System
+                                before + on due date           
+
+  F-44   Fine Report            CSV/PDF export of all fines by LIBRARIAN
+                                date range                     
+  --------------------------------------------------------------------------
+
+4.6 Analytics & Reports Module
+
+-   Dashboard KPI cards: total books, active members, books issued
+    today, total outstanding fines
+
+-   Issue volume chart (recharts AreaChart) — daily/weekly/monthly
+    toggle
+
+-   Top 10 most borrowed books
+
+-   Overdue books report — sortable by days overdue
+
+-   Category-wise inventory distribution (PieChart)
+
+-   CSV + PDF export for any report
+
+5. Non-Functional Requirements
+
+  -------------------------------------------------------------------------
+  Category          Requirement                 Implementation
+  ----------------- --------------------------- ---------------------------
+  Performance       < 1s initial page load, <   RSC + Prisma Accelerate
+                    200ms server action         cache + Turbopack
+
+  Scalability       Handle 500+ concurrent      Vercel Edge + Neon
+                    users                       connection pooling
+
+  Security          OWASP Top 10 compliance     Parameterised queries, CSRF
+                                                tokens, rate limiting
+
+  Accessibility     WCAG 2.1 AA                 Radix UI primitives,
+                                                semantic HTML, aria-labels
+
+  Reliability       99.9% uptime SLA            Vercel edge hosting +
+                                                automated DB backups
+
+  Maintainability   TypeScript strict, ESLint,  Husky pre-commit hooks + CI
+                    Prettier                    lint check
+
+  SEO /             Not required (auth-gated    robots.txt noindex on
+  Discoverability   app)                        dashboard routes
+
+  Responsiveness    Mobile-first, works on      Tailwind responsive
+                    320px–4K                    utilities + container
+                                                queries
+  -------------------------------------------------------------------------
+
+6. UI/UX Design Specifications
+
+6.1 Design Language
+
+-   Clean, modern 'data-tool' aesthetic — inspired by Linear, Vercel
+    Dashboard, and Notion
+
+-   Neutral grey base with a strong blue accent — professional and
+    trustworthy
+
+-   Dark mode first-class support via next-themes (CSS custom
+    properties)
+
+-   Consistent 8px spacing grid throughout
+
+-   Subtle animations using Framer Motion — no gratuitous motion
+
+6.2 Layout Structure
+
++-----------------------------------------------------------------------+
+| Dashboard Shell Layout                                                |
+|                                                                       |
+| ┌─────────────────────────────────────────────────────────┐ │ TOPBAR  |
+| [Logo] [Search] [Notifications] [User] │                              |
+| ├──────────────┬──────────────────────────────────────────┤ │ │ │ │   |
+| SIDEBAR │ MAIN CONTENT AREA │ │ Dashboard │ (RSC — renders per route) |
+| │ │ Books │ │ │ Members │ │ │ Issue │ │ │ Return │ │ │ Fines │ │ │    |
+| Reports │ │ │ Settings │ │ │ │ │                                      |
+| └──────────────┴──────────────────────────────────────────┘           |
++-----------------------------------------------------------------------+
+
+6.3 Key Page Designs
+
+Dashboard Page
+
+-   4 KPI stat cards (total books, members, issued today, overdue)
+
+-   Issue volume AreaChart (last 30 days) — recharts
+
+-   Recent Transactions table (last 10, with status badges)
+
+-   Overdue Alert banner if any books >3 days overdue
+
+Books Catalogue Page
+
+-   Top toolbar: Search input + Category filter (Select) + Sort dropdown
+
+-   Responsive grid: BookCards on mobile, DataTable on desktop
+
+-   BookCard: cover image, title, author, availability badge,
+    quick-action button
+
+-   Pagination via nuqs URL params — shareable links
+
+-   Add Book button (LIBRARIAN only) — opens Sheet drawer form
+
+Issue Book Page
+
+-   Two-panel form: Member Selector (combobox search) + Book Selector
+    (combobox search)
+
+-   Live eligibility check — shows warning if member has outstanding
+    fine/reached limit
+
+-   Due date calculator: today + loan period (configurable, default 14
+    days)
+
+-   Confirm button → Server Action → optimistic UI update → success
+    toast + receipt PDF
+
+Return Book Page
+
+-   Search by member name or transaction ID
+
+-   Shows active loans in a card list
+
+-   On return: auto-calculates fine if overdue; shows fine modal before
+    confirming
+
+-   Fine payment inline on same screen
+
+7. Development Phases — Step by Step
+
++-----------------------------------------------------------------------+
+| Build Order Philosophy                                                |
+|                                                                       |
+| Each phase builds on the previous. Never skip infrastructure phases.  |
+| The order: setup → DB → auth → core data models → transactions →      |
+| fines → UI polish → analytics → deployment.                           |
++-----------------------------------------------------------------------+
+
+Phase 1 — Project Scaffolding & Infrastructure [FIRST]
+
+Estimated time: 1–2 days. This phase MUST be completed before any
+feature work.
+
+1.  npx create-next-app@latest libraflow --typescript --tailwind
+    --eslint --app --src-dir --import-alias '@/*'
+
+2.  Install all dependencies: shadcn/ui init, prisma, next-auth,
+    zustand, tanstack-query, framer-motion, lucide-react, date-fns,
+    recharts, zod, react-hook-form, nuqs, uploadthing, resend, pdf-lib
+
+3.  Configure tsconfig.json: strict mode, path aliases
+
+4.  Configure .env.local: DATABASE_URL, NEXTAUTH_SECRET,
+    GOOGLE_CLIENT_ID, RESEND_API_KEY, UPLOADTHING_SECRET
+
+5.  Set up ESLint + Prettier + Husky pre-commit hooks
+
+6.  Initialise shadcn/ui components: button, input, form, table, dialog,
+    sheet, select, badge, card, skeleton, toast, command, dropdown-menu,
+    avatar
+
+7.  Configure next-themes provider in app/layout.tsx
+
+8.  Create global CSS variables (colours, radius) in globals.css
+
+Phase 2 — Database Schema & Migrations [SECOND]
+
+Estimated time: 1 day. The DB schema is the foundation — get it right
+before building services.
+
+9.  Write prisma/schema.prisma (User, Book, Category, Transaction, Fine,
+    Reservation models)
+
+10. Run: npx prisma migrate dev --name init
+
+11. Run: npx prisma generate
+
+12. Create lib/db.ts — Prisma client singleton (prevents connection
+    exhaustion in dev)
+
+13. Seed database: npx prisma db seed — sample categories, books, admin
+    user
+
+14. Test all relations with Prisma Studio: npx prisma studio
+
+Phase 3 — Authentication [THIRD]
+
+Estimated time: 1–2 days. Auth gates the entire app — build this before
+any protected pages.
+
+15. Install + configure NextAuth.js v5 (Auth.js): lib/auth.ts
+
+16. Credentials provider with bcrypt password verification
+
+17. Google OAuth provider (optional for students)
+
+18. Create auth pages: app/(auth)/login/page.tsx, register/page.tsx
+
+19. Build login form with React Hook Form + Zod validation
+
+20. Write middleware.ts — protect all /dashboard/* routes, redirect to
+    /login
+
+21. Attach role (SUPER_ADMIN | LIBRARIAN | USER) to JWT session token
+
+22. Test auth flow: login, session persistence, logout, role check
+
+Phase 4 — Dashboard Shell & Navigation [FOURTH]
+
+Estimated time: 1 day. Build the persistent layout once — all future
+pages slot in.
+
+23. Create app/(dashboard)/layout.tsx — Sidebar + Topbar shell
+
+24. Build Sidebar component: nav links, active state, collapse toggle,
+    role-based visibility
+
+25. Build Topbar component: search, notification bell (placeholder),
+    user avatar + dropdown
+
+26. Add Framer Motion layout animations for sidebar open/close
+
+27. Create app/(dashboard)/dashboard/page.tsx — placeholder KPI cards
+
+28. Verify route protection: unauthenticated users redirected to /login
+
+Phase 5 — Book Catalogue Module [FIFTH]
+
+Estimated time: 2–3 days. Core read-heavy module — excellent use of RSC.
+
+29. Create lib/services/bookService.ts — getAllBooks, getBookById,
+    searchBooks, createBook, updateBook, softDeleteBook
+
+30. Write Zod validation schemas in lib/validations/book.ts
+
+31. Create actions/book.actions.ts — Server Actions wrapping bookService
+
+32. Build app/(dashboard)/books/page.tsx — RSC fetching books list
+
+33. Build BookTable component (desktop) + BookGrid component (mobile)
+
+34. Add Search + Filter + Sort with nuqs URL params
+
+35. Build app/(dashboard)/books/[id]/page.tsx — book detail page
+
+36. Build AddBookForm + EditBookForm in a Sheet (drawer) component
+
+37. Integrate uploadthing for book cover image upload
+
+38. Add Skeleton loading states for all data fetches
+
+Phase 6 — Member Management Module [SIXTH]
+
+Estimated time: 1–2 days.
+
+39. Create lib/services/memberService.ts — CRUD +
+    getTransactionHistory + getFineBalance
+
+40. Build app/(dashboard)/members/page.tsx — searchable, paginated
+    member table
+
+41. Build MemberProfile page — active loans, history, fine summary
+
+42. Add suspend/unsuspend action with reason modal
+
+Phase 7 — Issue & Return Transactions [SEVENTH]
+
+Estimated time: 2–3 days. Most complex module — requires eligibility
+logic.
+
+43. Create lib/services/transactionService.ts — issueBook, returnBook,
+    renewLoan, checkEligibility
+
+44. Build issueBook Server Action with: eligibility check → availability
+    check → create transaction → decrement availableCopies
+
+45. Build app/(dashboard)/transactions/issue/page.tsx — combobox
+    member + book selectors, due-date display
+
+46. Build returnBook Server Action with: find active transaction →
+    compute fine → create Fine record if overdue → increment
+    availableCopies → notify reserved users
+
+47. Build app/(dashboard)/transactions/return/page.tsx — search by
+    member, show active loans, confirm return + fine display
+
+48. Generate PDF receipt on issue/return using pdf-lib
+
+49. Add optimistic UI updates + toast notifications
+
+Phase 8 — Fine Management Module [EIGHTH]
+
+Estimated time: 1 day.
+
+50. Create lib/services/fineService.ts — calculateFine, markPaid,
+    waiveFine
+
+51. Fine calculation formula: Math.max(0, daysDiff(dueDate,
+    returnDate)) * ratePerDay
+
+52. Build app/(dashboard)/fines/page.tsx — filterable fines table with
+    paid/unpaid badges
+
+53. Add fine payment modal with confirmation + receipt generation
+
+54. Add fine waiver modal with mandatory reason field
+
+55. Set up Resend + react-email: overdue reminder email sent at -3 days
+    and 0 days via Vercel Cron
+
+Phase 9 — Analytics Dashboard [NINTH]
+
+Estimated time: 1–2 days.
+
+56. Build KPI stat cards: totalBooks, totalMembers, issuedToday,
+    overdueCount, outstandingFines
+
+57. Build IssueVolumeChart (recharts AreaChart) with
+    daily/weekly/monthly toggle
+
+58. Build CategoryDistributionChart (recharts PieChart)
+
+59. Build TopBorrowedBooks table
+
+60. Build OverdueReport table with CSV export
+
+Phase 10 — Polish, Testing & Deployment [LAST]
+
+Estimated time: 2–3 days.
+
+61. Audit all pages for loading states (Suspense boundaries + Skeleton
+    components)
+
+62. Add error boundaries with user-friendly error UI
+
+63. Keyboard navigation audit — all interactive elements focusable,
+    correct tab order
+
+64. Write Playwright E2E tests: login → issue book → return book → fine
+    payment flow
+
+65. Deploy to Vercel: connect GitHub repo, set environment variables
+
+66. Provision Neon PostgreSQL: run npx prisma migrate deploy
+
+67. Configure Vercel Cron: /api/cron/check-overdue → daily at 08:00 IST
+
+68. Set up @vercel/analytics in app/layout.tsx
+
+69. Final security review: check all Server Actions validate session
+    role before executing
+
+8. API Design — Server Actions & Route Handlers
+
+8.1 Server Actions (Primary Mutation Interface)
+
+All mutations use Next.js Server Actions. They are called directly from
+Client Components — no fetch() needed. Each action validates the session
+role before executing.
+
+  --------------------------------------------------------------------------
+  Action Function             Module                 Auth Required
+  --------------------------- ---------------------- -----------------------
+  createBook(formData)        books                  LIBRARIAN
+
+  updateBook(id, formData)    books                  LIBRARIAN
+
+  deleteBook(id)              books                  LIBRARIAN
+
+  issueBook(memberId, bookId) transactions           LIBRARIAN
+
+  returnBook(transactionId)   transactions           LIBRARIAN
+
+  renewLoan(transactionId)    transactions           LIBRARIAN | USER
+
+  payFine(fineId)             fines                  LIBRARIAN
+
+  waiveFine(fineId, reason)   fines                  LIBRARIAN
+
+  suspendMember(userId,       members                LIBRARIAN
+  reason)                                            
+
+  reserveBook(bookId)         books                  USER
+  --------------------------------------------------------------------------
+
+8.2 Route Handlers (REST — for integrations)
+
+  ------------------------------------------------------------------------
+  Endpoint                   Method      Purpose
+  -------------------------- ----------- ---------------------------------
+  /api/books                 GET         Public catalogue search (for
+                                         future mobile app)
+
+  /api/books/[id]            GET         Single book detail
+
+  /api/transactions          GET         Transaction history (LIBRARIAN
+                                         scoped)
+
+  /api/reports/export        GET         CSV export of reports
+
+  /api/cron/check-overdue    POST        Daily cron — mark overdue, send
+                                         emails
+  ------------------------------------------------------------------------
+
+9. Security Specifications
+
+9.1 Authentication & Session Security
+
+-   Passwords hashed with bcrypt (12 rounds)
+
+-   JWT stored in httpOnly, secure, sameSite=strict cookies — not
+    localStorage
+
+-   Session validated in Next.js middleware on every protected request
+
+-   CSRF protection built into Server Actions (same-origin enforcement)
+
+9.2 Authorisation — RBAC
+
+  -------------------------------------------------------------------------
+  Permission              SUPER_ADMIN      LIBRARIAN        USER
+  ----------------------- ---------------- ---------------- ---------------
+  Manage Books (CRUD)     ✅               ✅               ❌
+
+  Issue / Return Books    ✅               ✅               ❌
+
+  Search & Browse         ✅               ✅               ✅
+  Catalogue                                                 
+
+  Reserve Books           ❌               ❌               ✅
+
+  View Own Transactions   ✅               ✅               ✅ (own only)
+
+  Manage Members          ✅               ✅               ❌
+
+  Fine Payment / Waiver   ✅               ✅               ❌
+
+  View Analytics          ✅               ✅               ❌
+
+  Create Librarian        ✅               ❌               ❌
+  Accounts                                                  
+
+  System Settings         ✅               ❌               ❌
+  -------------------------------------------------------------------------
+
+9.3 Data Security
+
+-   All DB queries via Prisma parameterised statements — no SQL
+    injection possible
+
+-   Input sanitisation with Zod on all Server Actions before DB write
+
+-   File uploads validated server-side for type (image only) and size (<
+    5MB)
+
+-   Rate limiting on auth endpoints: 5 attempts per 15 minutes (Upstash
+    Redis)
+
+-   Environment variables never exposed to client — server-only via
+    lib/env.ts
+
+10. Deployment Architecture
+
+  ------------------------------------------------------------------------
+  Service            Provider                   Purpose
+  ------------------ -------------------------- --------------------------
+  Web Hosting        Vercel (Pro)               Edge-optimised Next.js
+                                                hosting, CI/CD from GitHub
+
+  Database           Neon PostgreSQL            Serverless Postgres,
+                                                branching for preview envs
+
+  DB Connection Pool Prisma Accelerate          Global edge connection
+                                                pool + query cache
+
+  File Storage       UploadThing (S3)           Book cover image storage
+
+  Email              Resend                     Transactional emails —
+                                                overdue reminders,
+                                                receipts
+
+  Rate Limiting      Upstash Redis              Auth rate limiting via
+                                                @upstash/ratelimit
+
+  Cron Jobs          Vercel Cron                Daily overdue check +
+                                                email trigger
+
+  Monitoring         @vercel/analytics          Real user metrics, web
+                                                vitals
+  ------------------------------------------------------------------------
+
+10.1 Environment Variables
+
++-----------------------------------------------------------------------+
+| .env.local — Required Variables                                       |
+|                                                                       |
+| DATABASE_URL= # Neon PostgreSQL connection string DIRECT_URL= #       |
+| Direct URL for Prisma Migrate NEXTAUTH_SECRET= # Random 32-byte       |
+| secret NEXTAUTH_URL= # https://yourdomain.com GOOGLE_CLIENT_ID= #     |
+| OAuth (optional) GOOGLE_CLIENT_SECRET= # OAuth (optional)             |
+| UPLOADTHING_SECRET= # File uploads UPLOADTHING_APP_ID= # File uploads |
+| RESEND_API_KEY= # Email sending UPSTASH_REDIS_REST_URL= # Rate        |
+| limiting UPSTASH_REDIS_REST_TOKEN= # Rate limiting                    |
+| PRISMA_ACCELERATE_URL= # Connection pooling (optional, prod)          |
++-----------------------------------------------------------------------+
+
+11. Acceptance Criteria & Success Metrics
+
+  ------------------------------------------------------------------------
+  Metric                     Target                 Measurement Method
+  -------------------------- ---------------------- ----------------------
+  Page Load Time (LCP)       < 1.2 seconds          Vercel Analytics /
+                                                    Lighthouse
+
+  Server Action Response     < 300ms p95            Vercel Function logs
+
+  Transaction Processing     < 500ms end-to-end     Manual timing test
+
+  Search Results             < 150ms                Prisma query logs
+
+  Fine Calculation Accuracy  100%                   Unit test suite
+
+  Auth Security              0 unauthorised access  Playwright role tests
+
+  Mobile Usability           Score > 90             Google PageSpeed
+                                                    Mobile
+
+  Accessibility Score        > 95                   Lighthouse
+                                                    Accessibility audit
+  ------------------------------------------------------------------------
+
+12. Future Roadmap (Post-MVP)
+
+Version 1.1 — QR Code Integration
+
+-   Generate QR code per book on AddBook — embedded in spine label
+    printout
+
+-   QR scan on issue/return using device camera (html5-qrcode library)
+
+-   Eliminates manual search in issue/return flow
+
+Version 1.2 — Mobile Application
+
+-   React Native / Expo app sharing the same Next.js Route Handler API
+
+-   Students: search catalogue, reserve books, view history, pay fines
+    online
+
+-   Push notifications for overdue reminders
+
+Version 1.3 — AI Recommendations
+
+-   'You may also like' recommendations based on borrowing history
+    (collaborative filtering)
+
+-   Librarian dashboard: ML-suggested collection gaps based on
+    reservation demand
+
+Version 2.0 — Cloud Multi-Branch
+
+-   Multi-library/branch support under one super admin tenant
+
+-   Inter-branch book transfers
+
+-   RFID reader integration via WebUSB API
+
+13. Appendix
+
+A. Quick-Start Commands
+
++-----------------------------------------------------------------------+
+| Terminal — Setup & Run                                                |
+|                                                                       |
+| # 1. Clone and install git clone                                      |
+| https://github.com/your-org/libraflow.git cd libraflow npm install #  |
+| 2. Environment cp .env.example .env.local # Fill in all variables #   |
+| 3. Database npx prisma migrate dev --name init npx prisma db seed #   |
+| 4. Start dev server (Turbopack) npm run dev # 5. Open Prisma Studio   |
+| (optional) npx prisma studio                                          |
++-----------------------------------------------------------------------+
+
+B. Key npm Scripts
+
+  -----------------------------------------------------------------------
+  Script                 Description
+  ---------------------- ------------------------------------------------
+  npm run dev            Start development server with Turbopack
+
+  npm run build          Production build
+
+  npm run start          Start production server
+
+  npm run lint           ESLint check
+
+  npm run type-check     TypeScript check without emit
+
+  npm run test:e2e       Playwright end-to-end tests
+
+  npx prisma studio      Visual DB browser on localhost:5555
+
+  npx prisma migrate dev Apply schema changes to dev DB
+
+  npx prisma migrate     Apply migrations to production DB
+  deploy                 
+  -----------------------------------------------------------------------
+
+C. References
+
+This PRD is based on:
+
+-   Kapoor, J. et al. (2025). Library Management System. Chandigarh
+    University.
+
+-   Next.js 15 Documentation — nextjs.org/docs
+
+-   Prisma Documentation — prisma.io/docs
+
+-   NextAuth.js v5 (Auth.js) — authjs.dev
+
+-   shadcn/ui — ui.shadcn.com
+
+-   Tailwind CSS v4 — tailwindcss.com
+
++-----------------------------------------------------------------------+
+| LibraFlow — Library Management System                                 |
+|                                                                       |
+| Product Requirements Document v1.0 · Confidential                     |
++-----------------------------------------------------------------------+
