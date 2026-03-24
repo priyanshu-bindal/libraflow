@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   // Example fetch() call that hits the external REST API.
   // Replace the URL with your actual backend endpoint.
   // We're providing placeholder data for the MVP so it renders safely.
-  let dashboardData: DashboardData | null = null;
+  const dashboardData: DashboardData | null = null;
   
   /* 
   // Uncomment and replace the URL with your actual backend endpoint:

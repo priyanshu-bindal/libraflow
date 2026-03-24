@@ -229,7 +229,7 @@ export default function IssueBookPage() {
           <div className="space-y-4">
             <div className="flex gap-3 items-start">
               <div className="w-1.5 h-1.5 rounded-full bg-[#DC2626] mt-1.5 flex-shrink-0"></div>
-              <p className="text-xs text-white leading-relaxed">Member returned "Pragmatic Programmer" 2 days early.</p>
+              <p className="text-xs text-white leading-relaxed">Member returned &quot;Pragmatic Programmer&quot; 2 days early.</p>
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function IssueBookPage() {
           <div className="space-y-4">
             <div className="flex gap-3 items-start">
               <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0"></div>
-              <p className="text-xs text-white leading-relaxed">"Clean Code" is currently high demand. Only 2 remaining.</p>
+              <p className="text-xs text-white leading-relaxed">&quot;Clean Code&quot; is currently high demand. Only 2 remaining.</p>
             </div>
           </div>
         </div>
