@@ -1,6 +1,16 @@
 import React from 'react';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import LogoutButton from '@/components/auth/LogoutButton';
 
-export default function Topbar() {
+export default async function Topbar() {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id }
+  });
+
   return (
     <header className="h-16 bg-[#111111] border-b border-[#1F1F1F] flex items-center justify-between px-8 z-10 shrink-0">
       <h1 className="text-xl font-bold text-white">Dashboard</h1>
@@ -17,7 +27,7 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Right Notifications */}
+      {/* Right Notifications & Profile */}
       <div className="flex items-center gap-4">
         <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,6 +35,14 @@ export default function Topbar() {
           </svg>
           <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#DC2626] border-2 border-[#111111] rounded-full text-[10px] font-bold text-white flex items-center justify-center">3</span>
         </button>
+
+        <div className="flex items-center gap-3 border-l border-[#1F1F1F] pl-4">
+          <div className="flex flex-col text-right">
+            <span className="text-sm font-medium text-white">{user?.name}</span>
+            <span className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ').toLowerCase() || ''}</span>
+          </div>
+          <LogoutButton className="p-2 text-gray-400 hover:text-white hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center" isCollapsed={true} />
+        </div>
       </div>
     </header>
   );

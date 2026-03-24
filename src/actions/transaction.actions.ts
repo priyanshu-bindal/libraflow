@@ -78,8 +78,9 @@ export async function issueBook(memberId: string, bookId: string) {
     ]);
 
     // Clear caches to refresh dashboard and table views
-    revalidatePath('/dashboard/transactions');
+    revalidatePath('/dashboard');
     revalidatePath('/dashboard/books');
+    revalidatePath('/dashboard/transactions');
 
     return { success: true, message: 'Book successfully issued!' };
 

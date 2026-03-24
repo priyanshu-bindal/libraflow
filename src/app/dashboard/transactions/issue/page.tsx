@@ -13,6 +13,14 @@ export default async function IssueBookPage() {
               where: { status: 'ISSUED' }
             }
           }
+        },
+        transactions: {
+          where: {
+            fine: { paid: false }
+          },
+          include: {
+            fine: true
+          }
         }
       },
       orderBy: { name: 'asc' }
@@ -23,5 +31,5 @@ export default async function IssueBookPage() {
     })
   ]);
 
-  return <IssueBookClient members={members} books={books} />;
+  return <IssueBookClient members={members} books={books} loanPeriodDays={14} />;
 }

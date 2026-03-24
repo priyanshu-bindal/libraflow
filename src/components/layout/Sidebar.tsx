@@ -1,8 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
+ 
 import React from 'react';
 import Link from 'next/link';
+import { auth } from '@/lib/auth';
 
-export default function Sidebar() {
+export default async function Sidebar() {
+  const session = await auth();
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+
   return (
     <aside className="w-[240px] h-full bg-[#111111] border-r border-[#1F1F1F] flex flex-col flex-shrink-0">
       {/* Brand Logo */}
@@ -80,41 +84,47 @@ export default function Sidebar() {
         </section>
 
         {/* System Section */}
-        <section>
-          <div className="px-6 mb-2 text-[10px] font-bold text-[#4B5563] uppercase tracking-widest">System</div>
-          <ul className="space-y-1">
-            <li>
-              <Link href="#" className="flex items-center px-6 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#1A1A1A] transition-colors">
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Reports
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="flex items-center px-6 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#1A1A1A] transition-colors">
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                Settings
-              </Link>
-            </li>
-          </ul>
-        </section>
+        {isSuperAdmin && (
+          <section>
+            <div className="px-6 mb-2 text-[10px] font-bold text-[#4B5563] uppercase tracking-widest">System</div>
+            <ul className="space-y-1">
+              <li>
+                <Link href="#" className="flex items-center px-6 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#1A1A1A] transition-colors">
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  Reports
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="flex items-center px-6 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-[#1A1A1A] transition-colors">
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  Settings
+                </Link>
+              </li>
+            </ul>
+          </section>
+        )}
       </nav>
 
       {/* Sidebar Bottom User */}
       <div className="p-4 border-t border-[#1F1F1F]">
         <div className="flex items-center gap-3">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuHLOS4DpRW2riJy5SZDiDLqqCZiPxil680G9pJhhV46oYc4isyoi4SMlnU804zQq3fp5nOItv5E_uRJ4HUl1kyVnKNVNXqV7ufxRc6Rkh_NeIdLTMLgYVWQj3vr9VsYOnP8NXoW3paUuOjKTT8_zpfRBzuMQgRJ1fZ1jvYYN98gESTk417LjNg8p-CXKrenL0Vp-1EbcpNj_P9JihHCIAAyuXNUMvRyy8M9OWeiUsIdslOw4LALNQx3DiMhjd7TgFjR_PNpKf7Sk" alt="Admin Avatar" className="w-10 h-10 rounded-full border border-[#1F1F1F]" />
+          <div className="w-10 h-10 rounded-full border border-[#1F1F1F] bg-[#1F1F1F] flex items-center justify-center text-white font-bold text-lg">
+            {session?.user?.name?.charAt(0)?.toUpperCase()}
+          </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-semibold text-white truncate">Admin Account</p>
-            <p className="text-[11px] text-[#6B7280] truncate">admin@libraflow.com</p>
+            <p className="text-sm font-semibold text-white truncate">{session?.user?.name || 'User'}</p>
+            <p className="text-[11px] text-[#6B7280] truncate">{session?.user?.email}</p>
           </div>
         </div>
         <div className="mt-3">
-          <span className="inline-block px-2 py-1 text-[10px] font-bold text-white bg-[#1F1F1F] rounded-md tracking-wider">SUPER ADMIN</span>
+          <span className="inline-block px-2 py-1 text-[10px] font-bold text-white bg-[#1F1F1F] rounded-md tracking-wider">
+            {session?.user?.role?.replace('_', ' ') || 'USER'}
+          </span>
         </div>
       </div>
     </aside>
