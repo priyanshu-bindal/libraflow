@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createBookLive(data: any) {
   try {
     // 1. Look up or create the category since the frontend sends category name
@@ -44,6 +45,7 @@ export async function createBookLive(data: any) {
   redirect('/dashboard/books');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function updateBookAction(id: string, data: any) {
   try {
     // 1. Look up or create the category since the frontend sends category name

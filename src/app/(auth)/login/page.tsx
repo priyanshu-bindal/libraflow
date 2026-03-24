@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -190,7 +190,7 @@ export default function LoginPage() {
           {/* FOOTER */}
           <div className="mt-8 text-center text-sm">
             <span className="text-[#6B7280]">
-              Don't have an account?
+              Don&apos;t have an account?
             </span>
             <Link href="#" className="text-[#DC2626] ml-1 hover:underline">
               Register

@@ -12,6 +12,7 @@ const getCategoryColor = (categoryName: string) => {
   return 'bg-slate-500/20 text-slate-400';
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function BookCatalogClient({ initialBooks }: { initialBooks: any[] }) {
   const [category, setCategory] = useState('All Categories');
   const [status, setStatus] = useState('All');

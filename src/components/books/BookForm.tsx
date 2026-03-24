@@ -1,10 +1,10 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { 
-  CloudUpload, 
   Lightbulb,
   Image as ImageIcon
 } from 'lucide-react';

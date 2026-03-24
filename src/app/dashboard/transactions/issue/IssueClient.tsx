@@ -1,6 +1,7 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { 
   Calendar, 
@@ -8,12 +9,13 @@ import {
   X,
   Clock,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { issueBook, searchMembersAction, searchBooksAction, getBookById } from '@/actions/transaction.actions';
+import { issueBook } from '@/actions/transaction.actions';
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -21,6 +23,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandEmpty
 } from "@/components/ui/command";
 import {
   Popover,
@@ -31,22 +34,18 @@ import { cn } from "@/lib/utils";
 
 import { addDays } from 'date-fns';
 
-interface IssueBookForm {
-  memberSearch: string;
-  bookSearch: string;
-}
+type IssueBookForm = Record<string, unknown>;
 
-// Simple internal types based on Prisma outputs
-type SelectedMember = {
+type MemberProp = {
   id: string;
   name: string;
   membershipId: string;
   _count: {
-    transactions: number;
+    transactions: number; // Active Loans (ISSUED)
   };
 };
 
-type SelectedBook = {
+type BookProp = {
   id: string;
   title: string;
   author: string;
@@ -55,60 +54,23 @@ type SelectedBook = {
   coverUrl: string | null;
 };
 
-export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod?: number, maxBooks?: number }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialBookId = searchParams.get('bookId');
+interface IssueBookClientProps {
+  members: MemberProp[];
+  books: BookProp[];
+}
 
+export default function IssueBookClient({ members, books }: IssueBookClientProps) {
+  const router = useRouter();
   const { handleSubmit } = useForm<IssueBookForm>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [selectedMember, setSelectedMember] = useState<SelectedMember | null>(null);
-  const [selectedBook, setSelectedBook] = useState<SelectedBook | null>(null);
+  // Selections
+  const [selectedMember, setSelectedMember] = useState<MemberProp | null>(null);
+  const [selectedBook, setSelectedBook] = useState<BookProp | null>(null);
 
   // Popover states
   const [openMember, setOpenMember] = useState(false);
   const [openBook, setOpenBook] = useState(false);
-
-  // Search results
-  const [memberResults, setMemberResults] = useState<SelectedMember[]>([]);
-  const [bookResults, setBookResults] = useState<SelectedBook[]>([]);
-
-  const [memberQuery, setMemberQuery] = useState("");
-  const [bookQuery, setBookQuery] = useState("");
-
-  useEffect(() => {
-    if (initialBookId) {
-      getBookById(initialBookId).then((book) => {
-        if (book) {
-          setSelectedBook(book);
-        }
-      });
-    }
-  }, [initialBookId]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (memberQuery.length >= 2) {
-        searchMembersAction(memberQuery).then(setMemberResults);
-      } else {
-        setMemberResults([]);
-      }
-    }, 300);
-    return () => clearTimeout(delayDebounceFn);
-  }, [memberQuery]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (bookQuery.length >= 2) {
-        searchBooksAction(bookQuery).then(setBookResults);
-      } else {
-        setBookResults([]);
-      }
-    }, 300);
-    return () => clearTimeout(delayDebounceFn);
-  }, [bookQuery]);
-
 
   const onSubmit: SubmitHandler<IssueBookForm> = async () => {
     setIsSubmitting(true);
@@ -137,9 +99,29 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
   };
 
   const today = new Date();
+  const loanPeriod = 14;
   const dueDate = addDays(today, loanPeriod);
+  const maxBooks = 3; // Rule logic
 
   return (
+    <main className="flex-1 overflow-y-auto bg-[#0A0A0A] p-12 custom-scrollbar">
+      {/* Top Bar */}
+      <header className="flex justify-between items-center mb-12">
+        <div>
+          <nav className="text-[#6B7280] text-xs mb-2 tracking-widest uppercase">
+            <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link> /{' '}
+            <span className="cursor-pointer hover:text-white transition-colors">Transactions</span> /{' '}
+            <span className="text-white">Issue Book</span>
+          </nav>
+          <div className="relative inline-block">
+            <h1 className="text-4xl font-extrabold text-white font-headline tracking-tight">Issue Book</h1>
+            <div className="absolute -bottom-2 left-0 w-12 h-1 bg-[#DC2626]"></div>
+          </div>
+        </div>
+      </header>
+
+      {/* Transaction Section */}
+      <section className="max-w-[800px] mx-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="bg-[#111111] rounded-2xl border border-[#1F1F1F]/40 overflow-hidden shadow-2xl shadow-black/50">
           
           {/* Card Header */}
@@ -147,6 +129,14 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
             <h2 className="text-2xl font-bold text-white font-headline">New Book Issue</h2>
             <p className="text-[#6B7280] text-sm mt-1">Select a member and book to process issuance</p>
           </div>
+
+          {/* Warning Banner - Example logic, in reality active loans is the check */}
+          {selectedMember && selectedMember._count.transactions >= maxBooks && (
+            <div className="mx-8 mt-6 p-4 rounded-xl bg-[#690005]/20 border border-[#93000a]/40 flex items-center gap-4">
+              <AlertTriangle className="text-[#ffb4ab]" size={24} />
+              <p className="text-[#ffb4ab] text-sm font-medium">Member has reached the maximum active loans limit.</p>
+            </div>
+          )}
 
           {/* Form Columns */}
           <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -169,21 +159,18 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0 bg-[#0D0D0D] border-[#1F1F1F]/40">
-                    <Command className="bg-transparent text-white" shouldFilter={false}>
+                    <Command className="bg-transparent text-white">
                       <CommandInput 
                         placeholder="Search member by name or ID..." 
-                        value={memberQuery}
-                        onValueChange={setMemberQuery}
+                        className="text-white"
                       />
                       <CommandList>
-                        {memberQuery.length >= 2 && memberResults.length === 0 && (
-                          <div className="py-6 text-center text-sm text-[#6B7280]">No members found.</div>
-                        )}
+                        <CommandEmpty className="py-6 text-center text-sm text-[#6B7280]">No members found.</CommandEmpty>
                         <CommandGroup>
-                          {memberResults.map((m) => (
+                          {members.map((m) => (
                             <CommandItem
                               key={m.id}
-                              value={m.id}
+                              value={m.name} // Search by name
                               onSelect={() => {
                                 setSelectedMember(m);
                                 setOpenMember(false);
@@ -233,7 +220,10 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
                     </span>
                   </div>
                   <div className="h-1.5 w-full bg-[#2a2a2a] rounded-full overflow-hidden">
-                    <div className={cn("h-full", selectedMember._count.transactions >= maxBooks ? "bg-[#DC2626]" : "bg-[#10B981]")} style={{ width: `${Math.min((selectedMember._count.transactions / maxBooks) * 100, 100)}%` }}></div>
+                    <div 
+                      className={cn("h-full", selectedMember._count.transactions >= maxBooks ? "bg-[#DC2626]" : "bg-[#10B981]")} 
+                      style={{ width: `${Math.min((selectedMember._count.transactions / maxBooks) * 100, 100)}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -258,21 +248,18 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0 bg-[#0D0D0D] border-[#1F1F1F]/40">
-                    <Command className="bg-transparent text-white" shouldFilter={false}>
+                    <Command className="bg-transparent text-white">
                       <CommandInput 
-                        placeholder="Search by title or ISBN..." 
-                        value={bookQuery}
-                        onValueChange={setBookQuery}
+                        placeholder="Search by title..." 
+                        className="text-white"
                       />
                       <CommandList>
-                        {bookQuery.length >= 2 && bookResults.length === 0 && (
-                          <div className="py-6 text-center text-sm text-[#6B7280]">No books found.</div>
-                        )}
+                        <CommandEmpty className="py-6 text-center text-sm text-[#6B7280]">No books found.</CommandEmpty>
                         <CommandGroup>
-                          {bookResults.map((b) => (
+                          {books.map((b) => (
                             <CommandItem
                               key={b.id}
-                              value={b.id}
+                              value={b.title}
                               onSelect={() => {
                                 setSelectedBook(b);
                                 setOpenBook(false);
@@ -361,14 +348,49 @@ export function IssueFormContent({ loanPeriod = 14, maxBooks = 3 }: { loanPeriod
             </button>
             <button 
               type="submit" 
-              disabled={isSubmitting || !selectedMember || !selectedBook || selectedBook?.availableCopies === 0}
+              disabled={isSubmitting || !selectedMember || !selectedBook || selectedBook?.availableCopies === 0 || selectedMember?._count.transactions >= maxBooks}
               className="px-10 py-3 rounded-lg bg-gradient-to-br from-[#DC2626] to-[#93000b] text-white font-bold text-sm shadow-xl shadow-red-900/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Processing...' : 'Confirm Issue'}
             </button>
           </div>
         </form>
-  )
+      </section>
+
+      {/* Additional Contextual Grid */}
+      <section className="max-w-[800px] mx-auto mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-[#111111] p-6 rounded-2xl border border-[#1F1F1F]/40 backdrop-blur-xl">
+          <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-4">Past Activity</h4>
+          <div className="space-y-4">
+            <div className="flex gap-3 items-start">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#DC2626] mt-1.5 flex-shrink-0"></div>
+              <p className="text-xs text-white leading-relaxed">Member returned &quot;Pragmatic Programmer&quot; 2 days early.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#111111] p-6 rounded-2xl border border-[#1F1F1F]/40 backdrop-blur-xl">
+          <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-4">Stock Alerts</h4>
+          <div className="space-y-4">
+            <div className="flex gap-3 items-start">
+              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0"></div>
+              <p className="text-xs text-white leading-relaxed">&quot;Clean Code&quot; is currently high demand. Only 2 remaining.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#111111] p-6 rounded-2xl border border-[#1F1F1F]/40 backdrop-blur-xl">
+          <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-4">Issuance Rules</h4>
+          <div className="space-y-4">
+            <div className="flex gap-3 items-start">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#6B7280] mt-1.5 flex-shrink-0"></div>
+              <p className="text-xs text-white leading-relaxed">Standard members are capped at 3 simultaneous loans.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 

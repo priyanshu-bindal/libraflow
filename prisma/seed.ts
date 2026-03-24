@@ -207,7 +207,7 @@ async function main() {
     },
   })
 
-  const user1 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'user1@libraflow.com' },
     update: {},
     create: {
@@ -220,7 +220,7 @@ async function main() {
     },
   })
 
-  const user2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'user2@libraflow.com' },
     update: {},
     create: {
@@ -233,7 +233,7 @@ async function main() {
     },
   })
 
-  const user3 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'user3@libraflow.com' },
     update: {},
     create: {
@@ -246,7 +246,7 @@ async function main() {
     },
   })
 
-  const user4 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'user4@libraflow.com' },
     update: {},
     create: {
@@ -259,7 +259,7 @@ async function main() {
     },
   })
 
-  const user5 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'user5@libraflow.com' },
     update: {},
     create: {

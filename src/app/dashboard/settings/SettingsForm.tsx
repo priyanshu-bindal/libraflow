@@ -4,7 +4,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useTransition, useEffect } from "react";
-import { updateGlobalSettingsAction, GlobalSettingsInput } from "@/actions/settings.actions";
+import { updateGlobalSettingsAction } from "@/actions/settings.actions";
 import { updateAccountProfile } from "@/actions/user.actions";
 import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
@@ -32,6 +32,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function SettingsForm({ initialData }: { initialData: any }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
