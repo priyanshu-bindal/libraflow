@@ -94,12 +94,18 @@ export default async function BookDetailsPage({
               </p>
             </div>
             
-            <button 
-              disabled={book.availableCopies === 0}
-              className="w-full bg-[#DC2626] text-white py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Issue This Book
-            </button>
+            {book.availableCopies === 0 ? (
+              <button disabled className="w-full py-3 bg-[#2A2A2A] text-gray-500 text-sm font-bold uppercase tracking-widest rounded-xl cursor-not-allowed mt-4 shadow-sm border border-[#3A3A3A]">
+                Out of Stock
+              </button>
+            ) : (
+              <Link 
+                href={`/dashboard/transactions/issue?bookId=${book.id}`}
+                className="w-full py-3 bg-[#DC2626] hover:bg-red-500 text-white text-sm font-bold uppercase tracking-widest rounded-xl transition-all shadow-md mt-4 text-center block"
+              >
+                Issue This Book
+              </Link>
+            )}
           </div>
           
           {/* Info Column */}

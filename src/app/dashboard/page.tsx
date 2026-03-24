@@ -1,11 +1,13 @@
 import React from 'react';
 import { db } from '@/lib/db';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import IssueChart from '@/components/charts/IssueChart';
 import Link from 'next/link';
 
 export default async function DashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  
+
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
@@ -14,7 +16,8 @@ export default async function DashboardPage() {
     activeMembers,
     issuedToday,
     overdue,
-    recentTransactions
+    recentTransactions,
+    chartData
   ] = await Promise.all([
     db.book.count(),
     db.user.count({ where: { role: 'USER' } }),
@@ -36,16 +39,31 @@ export default async function DashboardPage() {
     }),
     db.transaction.findMany({
       take: 5,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       include: {
         user: true,
         book: true
       }
-    })
+    }),
+    Promise.all(
+      Array.from({ length: 7 }).map(async (_, i) => {
+        const date = subDays(new Date(), 6 - i);
+        const count = await db.transaction.count({
+          where: {
+            status: 'ISSUED',
+            issueDate: {
+              gte: startOfDay(date),
+              lte: endOfDay(date),
+            },
+          },
+        });
+        return { date: format(date, 'MMM dd'), count };
+      })
+    )
   ]);
 
   return (
-    <main className="flex-1 overflow-y-auto p-8 space-y-8">
+    <main className="flex-1 overflow-y-auto p-8 space-y-8 relative">
       {/* BEGIN: KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-[#111111] border border-[#1F1F1F] p-6 rounded-xl">
@@ -90,68 +108,38 @@ export default async function DashboardPage() {
       {/* END: KPI Row */}
 
       {/* BEGIN: Charts & Activity Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Issue Trends Bar Chart Card */}
-        <div className="lg:col-span-2 bg-[#111111] border border-[#1F1F1F] p-6 rounded-xl">
-          <div className="flex items-center justify-between mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+
+        {/* Left Column: Charts */}
+        <div className="lg:col-span-2 bg-[#111111] border border-[#1F1F1F] p-4 rounded-xl flex flex-col">
+          <div className="flex items-center justify-between mb-0">
             <h4 className="text-lg font-bold text-white">Issue Trends</h4>
             <select className="bg-[#0A0A0A] border-[#1F1F1F] text-gray-400 text-xs rounded-md py-1 px-3 focus:ring-0 focus:border-[#DC2626]">
               <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
             </select>
           </div>
-          <div className="flex items-end justify-between h-[200px] gap-2 px-4">
-            {/* Mockup Bars - Keeping these for now as charting is complex */}
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-40 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '60%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Mon</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-60 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '85%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Tue</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-40 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '45%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Wed</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-100 transition-all rounded-t-sm" style={{ height: '95%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Thu</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-70 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '75%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Fri</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-30 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '30%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Sat</span>
-            </div>
-            <div className="flex flex-col items-center flex-1 group">
-              <div className="w-full bg-[#DC2626] opacity-20 group-hover:opacity-100 transition-all rounded-t-sm" style={{ height: '20%' }}></div>
-              <span className="text-[10px] text-gray-500 mt-2">Sun</span>
-            </div>
-          </div>
+          {/* Recharts Area Component */}
+          <IssueChart data={chartData} />
         </div>
 
-        {/* Recent Activity Card */}
-        <div className="bg-[#111111] border border-[#1F1F1F] p-6 rounded-xl flex flex-col">
-          <h4 className="text-lg font-bold text-white mb-6">Recent Activity</h4>
-          <div className="flex-1 space-y-6">
+        {/* Right Column: Recent Activity Sticky */}
+        <div className="bg-[#111111] border border-[#1F1F1F] p-4 rounded-xl flex flex-col self-start sticky top-8">
+          <h4 className="text-lg font-bold text-white mb-3">Recent Activity</h4>
+          <div className="flex-1 space-y-3">
             {recentTransactions.length === 0 ? (
               <p className="text-sm text-gray-500">No recent activity.</p>
-            ) : recentTransactions.map((tx) => (
+            ) : recentTransactions.slice(0, 3).map((tx) => (
               <div key={tx.id} className="flex gap-4">
-                <div className={`w-2 h-2 mt-2 rounded-full ${
-                  tx.status === 'ISSUED' ? 'bg-blue-500' :
-                  tx.status === 'RETURNED' ? 'bg-green-500' : 'bg-red-500'
-                }`}></div>
+                <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${tx.status === 'RETURNED' ? 'bg-[#DC2626]' : // Overdue logic mockup
+                    tx.status === 'ISSUED' ? 'bg-green-500' : 'bg-blue-500'
+                  }`}></div>
                 <div>
                   <p className="text-sm font-semibold text-white">
                     {tx.status === 'ISSUED' ? 'Book Issued' :
-                     tx.status === 'RETURNED' ? 'Book Returned' : 'Book Overdue'}
+                      tx.status === 'RETURNED' ? 'Book Returned' : 'Book Overdue'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    &apos;{tx.book.title}&apos; - {tx.user.name}
+                    &apos;{tx.book.title}&apos; by {tx.user.name}
                   </p>
                   <p className="text-[10px] text-gray-600 mt-1">
                     {new Date(tx.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -160,9 +148,88 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
+          <Link href="/dashboard/transactions" className="mt-6 w-full py-2 bg-[#1F1F1F] hover:bg-[#2D2D2D] text-xs font-bold text-white rounded transition-colors uppercase tracking-widest text-center block">
+            VIEW ALL
+          </Link>
         </div>
+
       </div>
       {/* END: Charts & Activity Row */}
+
+      {/* BEGIN: Transactions Table */}
+      <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl overflow-hidden mt-6 shadow-sm">
+        <div className="p-5 border-b border-[#1F1F1F] flex items-center justify-between">
+          <h4 className="text-lg font-bold text-white">Recent Transactions</h4>
+          <Link href="/dashboard/transactions" className="text-xs font-bold text-[#DC2626] hover:text-red-500 transition-colors uppercase tracking-wider">
+            View More
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] font-bold text-[#4B5563] uppercase tracking-wider bg-[#0C0C0C]">
+                <th className="px-6 py-4">Book Title</th>
+                <th className="px-6 py-4">Member</th>
+                <th className="px-6 py-4">Issue Date</th>
+                <th className="px-6 py-4">Due Date</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm divide-y divide-[#1F1F1F]">
+              {recentTransactions.map((tx) => (
+                <tr key={tx.id} className="hover:bg-[#1A1A1A]/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {tx.book.coverUrl ? (
+                        <img src={tx.book.coverUrl} alt="Cover" className="w-10 h-14 rounded object-cover border border-[#1F1F1F]" />
+                      ) : (
+                        <div className="w-10 h-14 rounded bg-[#0A0A0A] border border-[#1F1F1F] flex items-center justify-center text-[10px] text-gray-600 font-medium">No Cover</div>
+                      )}
+                      <div>
+                        <p className="font-bold text-white truncate max-w-[200px]">{tx.book.title}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-[200px]">{tx.book.author}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-white font-medium truncate max-w-[150px]">{tx.user.name}</p>
+                    <p className="text-xs text-gray-500">ID: #{tx.user.id.slice(0, 8)}</p>
+                  </td>
+                  <td className="px-6 py-4 text-gray-400">
+                    {new Date(tx.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className={`px-6 py-4 ${new Date(tx.dueDate) < new Date() && tx.status === 'ISSUED' ? 'text-[#DC2626] font-medium' : 'text-gray-400'}`}>
+                    {new Date(tx.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td className="px-6 py-4">
+                    {tx.status === 'RETURNED' ? (
+                      <span className="px-3 py-1 text-[10px] font-bold bg-blue-900/30 text-blue-400 border border-blue-800/50 rounded-full uppercase">Returned</span>
+                    ) : new Date(tx.dueDate) < new Date() ? (
+                      <span className="px-3 py-1 text-[10px] font-bold bg-red-900/30 text-[#DC2626] border border-red-800/50 rounded-full uppercase">Overdue</span>
+                    ) : (
+                      <span className="px-3 py-1 text-[10px] font-bold bg-green-900/30 text-green-500 border border-green-800/50 rounded-full uppercase">Issued</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button className="text-gray-500 hover:text-white transition-colors">
+                      <svg className="w-5 h-5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {recentTransactions.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    No transactions found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* END: Transactions Table */}
     </main>
   );
 }

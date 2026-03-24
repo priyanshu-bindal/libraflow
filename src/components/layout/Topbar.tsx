@@ -12,8 +12,8 @@ export default async function Topbar() {
   });
 
   return (
-    <header className="h-16 bg-[#111111] border-b border-[#1F1F1F] flex items-center justify-between px-8 z-10 shrink-0">
-      <h1 className="text-xl font-bold text-white">Dashboard</h1>
+    <header className="h-16 bg-[#111111] border-b border-[#1F1F1F] flex items-center justify-between pl-16 pr-8 md:px-8 z-10 shrink-0">
+      <h1 className="text-xl font-bold text-white hidden sm:block">Dashboard</h1>
       
       {/* Search Bar */}
       <div className="flex-1 max-w-xl px-12">

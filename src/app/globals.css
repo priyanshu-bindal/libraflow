@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@uploadthing/react/styles.css";
 
 @source "../components";
 
@@ -112,4 +113,35 @@
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
+}
+
+.loader-rings {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  border: 3px solid transparent;
+  border-top-color: #dc2626;
+  animation: spinRings 2s linear infinite;
+}
+.loader-rings:before, .loader-rings:after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+.loader-rings:before {
+  top: 5px; left: 5px; right: 5px; bottom: 5px;
+  border-top-color: #fff;
+  animation: spinRings 3s linear infinite;
+}
+.loader-rings:after {
+  top: 15px; left: 15px; right: 15px; bottom: 15px;
+  border-top-color: #dc2626;
+  animation: spinRings 1.5s linear infinite;
+}
+@keyframes spinRings {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

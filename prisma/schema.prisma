@@ -17,6 +17,11 @@ enum Role {
   USER
 }
 
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum TransactionStatus {
   ISSUED
   RETURNED
@@ -35,6 +40,7 @@ model User {
   email         String       @unique
   passwordHash  String
   role          Role         @default(USER)
+  accountStatus AccountStatus @default(ACTIVE)
   membershipId  String       @unique @default(cuid())
   phone         String?
   address       String?
@@ -43,6 +49,7 @@ model User {
 
   transactions  Transaction[]
   reservations  Reservation[]
+  fines         Fine[]
 }
 
 model Book {
@@ -85,6 +92,7 @@ model Transaction {
   dueDate     DateTime
   returnDate  DateTime?
   status      TransactionStatus   @default(ISSUED)
+  renewalsUsed Int                @default(0)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -100,15 +108,19 @@ model Transaction {
 model Fine {
   id              String      @id @default(cuid())
   transactionId   String      @unique
+  userId          String?
   amount          Decimal     @db.Decimal(10, 2)
+  reason          String?
   paid            Boolean     @default(false)
   paidAt          DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([transactionId])
+  @@index([userId])
 }
 
 model Reservation {
@@ -125,4 +137,11 @@ model Reservation {
   @@index([userId])
   @@index([bookId])
   @@index([status])
+}
+
+model GlobalSettings {
+  id              String   @id @default("default")
+  renewalLimit    Int      @default(2)
+  loanPeriodDays  Int      @default(14)
+  updatedAt       DateTime @updatedAt
 }

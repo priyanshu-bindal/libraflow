@@ -1,47 +1,31 @@
 'use client';
 
 import { useTransition } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { markFineAsPaid } from '@/actions/fine.actions';
+import { processFinePayment } from '@/actions/fine.actions';
 
-export function PayFineButton({ fineId }: { fineId: string }) {
+export default function PayFineButton({ fineId }: { fineId: string }) {
   const [isPending, startTransition] = useTransition();
 
-  const handlePay = () => {
+  const handlePayment = () => {
     startTransition(async () => {
-      try {
-        const result = await markFineAsPaid(fineId);
-        if (result.success) {
-          toast.success(result.message);
-        } else {
-          toast.error(result.message);
-        }
-      } catch {
-        toast.error('An unexpected error occurred.');
+      const res = await processFinePayment(fineId);
+      if (!res.success) {
+        alert(res.error);
       }
     });
   };
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      className="bg-red-600 hover:bg-red-700 text-white"
-      onClick={handlePay}
+    <button
+      onClick={handlePayment}
       disabled={isPending}
+      className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+        isPending
+          ? 'bg-[#1A1A1A] text-gray-500 cursor-not-allowed'
+          : 'bg-[#DC2626] text-white hover:bg-red-500'
+      }`}
     >
-      {isPending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
-        </>
-      ) : (
-        'Mark as Paid'
-      )}
-    </Button>
+      {isPending ? 'PROCESSING...' : 'MARK PAID'}
+    </button>
   );
 }
-
-
