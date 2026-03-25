@@ -20,7 +20,11 @@ export async function issueBook(memberId: string, bookId: string) {
       return { success: false, message: 'This book is currently out of stock.' };
     }
 
-    // 2. Check Member Limits (Max 3 active loans)
+    // 2. Check Member Limits (Dynamic from GlobalSettings)
+    const settings = await db.globalSettings.findUnique({ where: { id: 'default' }});
+    const maxBooks = settings?.maxBooksPerUser ?? 3;
+    const loanPeriodDays = settings?.loanPeriodDays ?? 14;
+
     const activeLoansCount = await db.transaction.count({
       where: {
         userId: memberId,
@@ -28,10 +32,10 @@ export async function issueBook(memberId: string, bookId: string) {
       },
     });
 
-    if (activeLoansCount >= 3) {
+    if (activeLoansCount >= maxBooks) {
       return { 
         success: false, 
-        message: 'Member has reached the maximum borrowing limit of 3 active loans.' 
+        message: `Member has reached the maximum borrowing limit of ${maxBooks} active loans.` 
       };
     }
 
@@ -54,7 +58,7 @@ export async function issueBook(memberId: string, bookId: string) {
 
     // 4. Perform the transactional update
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14); // 14 days from now
+    dueDate.setDate(dueDate.getDate() + loanPeriodDays); // Use dynamic setting
 
     await db.$transaction([
       // Create the transaction
@@ -102,16 +106,20 @@ export async function issueBookDirectly(bookId: string, userId: string) {
       return { success: false, error: 'No copies available' };
     }
 
+    const settings = await db.globalSettings.findUnique({ where: { id: 'default' }});
+    const maxBooks = settings?.maxBooksPerUser ?? 3;
+    const loanPeriodDays = settings?.loanPeriodDays ?? 14;
+
     const activeLoans = await db.transaction.count({
       where: { userId, status: 'ISSUED' }
     });
 
-    if (activeLoans >= 3) {
+    if (activeLoans >= maxBooks) {
       return { success: false, error: 'Member has reached borrowing limit' };
     }
 
     const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14);
+    dueDate.setDate(dueDate.getDate() + loanPeriodDays);
 
     await db.$transaction([
       db.transaction.create({
@@ -219,14 +227,17 @@ export async function returnBookAction(transactionId: string) {
     const now = new Date();
     let fineAmount = 0;
     
-    // Calculate Fine: ₹10 per day overdue
+    const settings = await db.globalSettings.findUnique({ where: { id: 'default' }});
+    const fineRate = settings?.fineRatePerDay ?? 10;
+    
+    // Calculate Fine: Dynamic rate per day overdue
     if (now > transaction.dueDate) {
       const dueStart = new Date(transaction.dueDate).setHours(0,0,0,0);
       const nowStart = new Date(now).setHours(0,0,0,0);
       const diffTime = Math.abs(nowStart - dueStart);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
-      fineAmount = diffDays * 10;
+      fineAmount = diffDays * fineRate;
     }
 
     await db.$transaction(async (tx) => {
@@ -252,7 +263,7 @@ export async function returnBookAction(transactionId: string) {
             transactionId: transactionId,
             userId: transaction.userId,
             amount: fineAmount,
-            reason: `Overdue fine for "${transaction.book.title}" (${fineAmount / 10} days at ₹10/day)`,
+            reason: `Overdue fine for "${transaction.book.title}" (${fineAmount / fineRate} days at ₹${fineRate}/day)`,
             paid: false,
           },
         });

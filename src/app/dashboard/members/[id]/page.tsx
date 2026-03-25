@@ -45,6 +45,10 @@ export default async function MemberProfilePage(props: { params: Promise<{ id: s
   
   const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`;
 
+  const settings = await db.globalSettings.findUnique({ where: { id: "default" } });
+  const loanPeriodDays = settings?.loanPeriodDays ?? 14;
+  const renewalLimit = settings?.renewalLimit ?? 2;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden h-full bg-[#050505]">
 
@@ -161,15 +165,18 @@ export default async function MemberProfilePage(props: { params: Promise<{ id: s
                             On time
                           </span>
                         )}
-                        <RenewLoanModal transaction={{
-                          id: t.id,
-                          dueDate: t.dueDate,
-                          // @ts-expect-error Types unsynced until restarting Next server
-                          renewalsUsed: t.renewalsUsed,
-                          book: { title: t.book.title, author: t.book.author },
-                          user: { name: user.name, membershipId: user.membershipId },
-                          fine: t.fine
-                        }} />
+                        <RenewLoanModal 
+                          transaction={{
+                            id: t.id,
+                            dueDate: t.dueDate,
+                            renewalsUsed: t.renewalsUsed,
+                            book: { title: t.book.title, author: t.book.author },
+                            user: { name: user.name, membershipId: user.membershipId },
+                            fine: t.fine
+                          }} 
+                          loanPeriodDays={loanPeriodDays} 
+                          renewalLimit={renewalLimit} 
+                        />
                       </div>
                     </div>
                   );

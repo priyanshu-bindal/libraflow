@@ -8,9 +8,10 @@ import { ChevronLeft, Menu, X, LayoutDashboard, Library, Users, ArrowRightLeft, 
 interface SidebarClientProps {
   user: any;
   isSuperAdmin: boolean;
+  libraryName?: string;
 }
 
-export default function SidebarClient({ user, isSuperAdmin }: SidebarClientProps) {
+export default function SidebarClient({ user, isSuperAdmin, libraryName = 'LibraFlow' }: SidebarClientProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -52,7 +53,7 @@ export default function SidebarClient({ user, isSuperAdmin }: SidebarClientProps
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
             </svg>
           </div>
-          <span className={`text-[#DC2626] font-bold text-xl tracking-tight transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>LibraFlow</span>
+          <span className={`text-[#DC2626] font-bold text-xl tracking-tight transition-opacity duration-300 truncate ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>{libraryName}</span>
           
           {/* Mobile Close Button */}
           <button 

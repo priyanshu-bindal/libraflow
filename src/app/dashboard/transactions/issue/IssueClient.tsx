@@ -40,9 +40,10 @@ interface IssueBookClientProps {
   members: MemberProp[];
   books: BookProp[];
   loanPeriodDays: number;
+  maxBooksPerUser: number;
 }
 
-export default function IssueBookClient({ members, books, loanPeriodDays }: IssueBookClientProps) {
+export default function IssueBookClient({ members, books, loanPeriodDays, maxBooksPerUser }: IssueBookClientProps) {
   const router = useRouter();
   const { handleSubmit } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +67,7 @@ export default function IssueBookClient({ members, books, loanPeriodDays }: Issu
     }
   }, [preSelectedBookId, books]);
 
-  const maxBooks = 3;
+  const maxBooks = maxBooksPerUser;
 
   const totalFine = selectedMember?.transactions?.reduce((sum, tx) => {
     if (tx.fine && !tx.fine.paid) {

@@ -2,47 +2,50 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
-const settingsSchema = z.object({
-  libraryName: z.string().min(1),
-  libraryEmail: z.string().email(),
-  contactPhone: z.string().optional(),
-  address: z.string().optional(),
-  defaultLoanPeriod: z.number().int().min(1),
-  maxBooksPerMember: z.number().int().min(1),
-  renewalLimit: z.number().int().min(0),
-  reservationHoldPeriod: z.number().int().min(1),
-  fineRatePerDay: z.number().min(0),
-  gracePeriod: z.number().int().min(0),
-  maxFineCap: z.number().min(0),
-  emailOverdueReminders: z.boolean(),
-  smsNotifications: z.boolean(),
-  finePaymentReceipts: z.boolean(),
-  newMemberWelcomeEmail: z.boolean(),
-});
-
-export type GlobalSettingsInput = z.infer<typeof settingsSchema>;
-
-export async function updateGlobalSettingsAction(data: GlobalSettingsInput) {
-  const parsedData = settingsSchema.parse(data);
-
-  await db.globalSettings.upsert({
-    where: { id: "singleton" },
-    update: parsedData,
-    create: {
-      id: "singleton",
-      ...parsedData,
-    },
+export async function getSettingsAction() {
+  let settings = await db.globalSettings.findUnique({
+    where: { id: "default" }
   });
 
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/", "layout");
+  if (!settings) {
+    settings = await db.globalSettings.create({
+      data: { id: "default" }
+    });
+  }
+
+  return settings;
 }
 
-export async function getFineRateAction() {
-  const settings = await db.globalSettings.findUnique({
-    where: { id: "singleton" },
-  });
-  return settings ? Number(settings.fineRatePerDay) : 2.0; // Fallback to 2.0 if not found
+export async function updateSettingsAction(data: any) {
+  try {
+    const settings = await db.globalSettings.upsert({
+      where: { id: "default" },
+      update: {
+        libraryName: data.libraryName,
+        contactEmail: data.contactEmail,
+        fineRatePerDay: parseFloat(data.fineRatePerDay),
+        maxBooksPerUser: parseInt(data.maxBooksPerUser, 10),
+        loanPeriodDays: parseInt(data.loanPeriodDays, 10),
+        renewalLimit: parseInt(data.renewalLimit, 10),
+      },
+      create: {
+        id: "default",
+        libraryName: data.libraryName,
+        contactEmail: data.contactEmail,
+        fineRatePerDay: parseFloat(data.fineRatePerDay),
+        maxBooksPerUser: parseInt(data.maxBooksPerUser, 10),
+        loanPeriodDays: parseInt(data.loanPeriodDays, 10),
+        renewalLimit: parseInt(data.renewalLimit, 10),
+      }
+    });
+
+    // Revalidate everything so the UI elements immediately reflect changes globally
+    revalidatePath('/', 'layout');
+
+    return { success: true, message: 'Settings updated successfully.', settings };
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    return { success: false, message: 'Internal server error while updating settings.' };
+  }
 }

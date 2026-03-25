@@ -29,15 +29,16 @@ export interface TransactionMetadata {
 interface RecoverProps {
   transaction: TransactionMetadata;
   renewalLimit?: number;
+  loanPeriodDays?: number;
 }
 
-export function RenewLoanModal({ transaction, renewalLimit = 2 }: RecoverProps) {
+export function RenewLoanModal({ transaction, renewalLimit = 2, loanPeriodDays = 14 }: RecoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const newDueDate = new Date(transaction.dueDate);
-  newDueDate.setDate(newDueDate.getDate() + 14); // Next 14 days
+  newDueDate.setDate(newDueDate.getDate() + loanPeriodDays); // Dynamic based on global settings
 
   const renewalsUsed = transaction.renewalsUsed || 0;
   const isLimitReached = renewalsUsed >= renewalLimit;

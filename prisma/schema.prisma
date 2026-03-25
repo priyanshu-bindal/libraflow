@@ -140,8 +140,12 @@ model Reservation {
 }
 
 model GlobalSettings {
-  id              String   @id @default("default")
-  renewalLimit    Int      @default(2)
-  loanPeriodDays  Int      @default(14)
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default("default")
+  libraryName       String   @default("LibraFlow")
+  contactEmail      String   @default("admin@libraflow.com")
+  fineRatePerDay    Float    @default(10.0)
+  maxBooksPerUser   Int      @default(3)
+  loanPeriodDays    Int      @default(14)
+  renewalLimit      Int      @default(2)
+  updatedAt         DateTime @updatedAt
 }

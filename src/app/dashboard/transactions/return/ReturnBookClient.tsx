@@ -8,7 +8,7 @@ import { differenceInDays, format } from 'date-fns';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
-export default function ReturnBookClient() {
+export default function ReturnBookClient({ fineRatePerDay = 10 }: { fineRatePerDay: number }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillId = searchParams?.get('id');
@@ -80,7 +80,7 @@ export default function ReturnBookClient() {
       const nowStart = new Date(now).setHours(0,0,0,0);
       const diffTime = Math.abs(nowStart - dueStart);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays * 10;
+      return diffDays * fineRatePerDay;
     }
     return 0;
   };

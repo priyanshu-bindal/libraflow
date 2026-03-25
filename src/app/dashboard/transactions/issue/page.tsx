@@ -3,6 +3,10 @@ import { db } from '@/lib/db';
 import IssueBookClient from './IssueClient';
 
 export default async function IssueBookPage() {
+  const settings = await db.globalSettings.findUnique({ where: { id: 'default' }});
+  const loanPeriodDays = settings?.loanPeriodDays ?? 14;
+  const maxBooksPerUser = settings?.maxBooksPerUser ?? 3;
+
   const [members, books] = await Promise.all([
     db.user.findMany({
       where: { role: 'USER' },
@@ -31,5 +35,5 @@ export default async function IssueBookPage() {
     })
   ]);
 
-  return <IssueBookClient members={members} books={books} loanPeriodDays={14} />;
+  return <IssueBookClient members={members} books={books} loanPeriodDays={loanPeriodDays} maxBooksPerUser={maxBooksPerUser} />;
 }
