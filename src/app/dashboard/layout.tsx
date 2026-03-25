@@ -1,12 +1,20 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+
+  if (!session) {
+    redirect('/login');
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0A0A] text-[#F9FAFB] font-sans">
       <Sidebar />
