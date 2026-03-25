@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertTriangle, Clock, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { renewBookAction } from "@/actions/transaction.actions";
-
+import { canRenew } from "@/lib/utils";
 export interface TransactionMetadata {
   id: string;
   dueDate: Date;
@@ -42,6 +42,9 @@ export function RenewLoanModal({ transaction, renewalLimit = 2 }: RecoverProps) 
   const renewalsUsed = transaction.renewalsUsed || 0;
   const isLimitReached = renewalsUsed >= renewalLimit;
 
+  // Check if renewal is allowed by date logic
+  const isValidToRenew = canRenew(transaction.dueDate);
+
   // Calculate if any fines block the modal
   const hasUnpaidFines = transaction.fine ? !transaction.fine.paid : false;
   const fineAmount = hasUnpaidFines ? Number(transaction.fine?.amount) : 0;
@@ -61,7 +64,15 @@ export function RenewLoanModal({ transaction, renewalLimit = 2 }: RecoverProps) 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="border border-[#1F1F1F] hover:bg-[#1F1F1F] px-3 py-1 rounded-md text-xs font-medium text-gray-300 transition-colors">
+        <button 
+          title={!isValidToRenew ? "Renewal available 3 days before due date" : undefined}
+          disabled={!isValidToRenew}
+          className={`border border-[#1F1F1F] px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+            !isValidToRenew 
+              ? "opacity-50 cursor-not-allowed bg-transparent text-gray-500" 
+              : "hover:bg-[#1F1F1F] text-gray-300"
+          }`}
+        >
           Renew
         </button>
       </DialogTrigger>
@@ -135,6 +146,14 @@ export function RenewLoanModal({ transaction, renewalLimit = 2 }: RecoverProps) 
               </p>
             </div>
           )}
+          {!isValidToRenew && !hasUnpaidFines && !isLimitReached && (
+            <div className="bg-[#450A0A] border border-[#DC2626]/30 rounded-lg p-3 flex items-start gap-3 shadow-lg">
+              <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+              <p className="text-amber-500 text-xs font-medium leading-relaxed">
+                This loan is not yet eligible for renewal. Please try again closer to the due date.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="border-t border-[#1F1F1F] pt-4 flex gap-3 sm:gap-0 mt-2">
@@ -145,13 +164,19 @@ export function RenewLoanModal({ transaction, renewalLimit = 2 }: RecoverProps) 
           >
             Cancel
           </button>
-          <button
-            disabled={isPending || isLimitReached || hasUnpaidFines}
-            onClick={handleRenew}
-            className="px-4 py-2 bg-[#DC2626] hover:bg-red-700 disabled:bg-red-900/50 text-white rounded-lg transition-all text-sm font-medium disabled:cursor-not-allowed w-full sm:w-auto shadow-md"
-          >
-            {isPending ? 'Processing...' : 'Confirm Renewal'}
-          </button>
+          {!isValidToRenew ? (
+            <div className="text-amber-500 text-xs font-medium flex-1 text-right sm:text-left self-center hidden sm:block">
+              Not eligible
+            </div>
+          ) : (
+            <button
+              disabled={isPending || isLimitReached || hasUnpaidFines || !isValidToRenew}
+              onClick={handleRenew}
+              className="px-4 py-2 bg-[#DC2626] hover:bg-red-700 disabled:bg-red-900/50 text-white rounded-lg transition-all text-sm font-medium disabled:cursor-not-allowed w-full sm:w-auto shadow-md"
+            >
+              {isPending ? 'Processing...' : 'Confirm Renewal'}
+            </button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

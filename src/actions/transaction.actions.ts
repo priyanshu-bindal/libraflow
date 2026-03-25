@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { canRenew } from '@/lib/utils';
 
 export async function issueBook(memberId: string, bookId: string) {
   try {
@@ -152,6 +153,10 @@ export async function renewBookAction(transactionId: string) {
        return { success: false, message: 'Only active loans can be renewed.' };
     }
 
+    if (!canRenew(transaction.dueDate)) {
+      throw new Error('This loan is not yet eligible for renewal. Please try again closer to the due date.');
+    }
+
     const hasUnpaidFines = await db.fine.findFirst({
       where: {
         userId: transaction.userId,
@@ -193,5 +198,109 @@ export async function renewBookAction(transactionId: string) {
   } catch (error) {
     console.error('Failed to renew book:', error);
     return { success: false, message: 'Internal server error while renewing book.' };
+  }
+}
+
+export async function returnBookAction(transactionId: string) {
+  try {
+    const transaction = await db.transaction.findUnique({
+      where: { id: transactionId },
+      include: { book: true, user: true },
+    });
+
+    if (!transaction) {
+      return { success: false, message: 'Transaction not found.' };
+    }
+
+    if (transaction.status !== 'ISSUED') {
+      return { success: false, message: 'Transaction is already closed or not active.' };
+    }
+
+    const now = new Date();
+    let fineAmount = 0;
+    
+    // Calculate Fine: ₹10 per day overdue
+    if (now > transaction.dueDate) {
+      const dueStart = new Date(transaction.dueDate).setHours(0,0,0,0);
+      const nowStart = new Date(now).setHours(0,0,0,0);
+      const diffTime = Math.abs(nowStart - dueStart);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      fineAmount = diffDays * 10;
+    }
+
+    await db.$transaction(async (tx) => {
+      // 1. Update Transaction
+      await tx.transaction.update({
+        where: { id: transactionId },
+        data: {
+          status: 'RETURNED',
+          returnDate: now,
+        },
+      });
+
+      // 2. Increment Book Copies
+      await tx.book.update({
+        where: { id: transaction.bookId },
+        data: { availableCopies: { increment: 1 } },
+      });
+
+      // 3. Create Fine if needed
+      if (fineAmount > 0) {
+        await tx.fine.create({
+          data: {
+            transactionId: transactionId,
+            userId: transaction.userId,
+            amount: fineAmount,
+            reason: `Overdue fine for "${transaction.book.title}" (${fineAmount / 10} days at ₹10/day)`,
+            paid: false,
+          },
+        });
+      }
+    });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/transactions');
+    revalidatePath(`/dashboard/members/${transaction.userId}`);
+    revalidatePath('/dashboard/activity');
+
+    return { 
+      success: true, 
+      message: fineAmount > 0 
+        ? `Book returned with ₹${fineAmount} overdue fine.` 
+        : 'Book successfully returned.' 
+    };
+
+  } catch (error) {
+    console.error('Failed to return book:', error);
+    return { success: false, message: 'Internal server error while returning book.' };
+  }
+}
+
+export async function searchActiveTransactions(query: string) {
+  try {
+    if (!query || query.trim().length === 0) return { success: true, data: [] };
+
+    const transactions = await db.transaction.findMany({
+      where: {
+        status: 'ISSUED',
+        OR: [
+          { book: { title: { contains: query, mode: 'insensitive' } } },
+          { user: { name: { contains: query, mode: 'insensitive' } } },
+          { id: { contains: query, mode: 'insensitive' } }
+        ]
+      },
+      include: {
+        book: { select: { title: true, coverUrl: true } },
+        user: { select: { name: true, membershipId: true } }
+      },
+      take: 5,
+      orderBy: { issueDate: 'desc' }
+    });
+
+    return { success: true, data: transactions };
+  } catch (error) {
+    console.error('Failed to search transactions:', error);
+    return { success: false, message: 'Failed to search active transactions.' };
   }
 }

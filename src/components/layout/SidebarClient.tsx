@@ -91,7 +91,7 @@ export default function SidebarClient({ user, isSuperAdmin }: SidebarClientProps
               <div className={`px-6 mb-2 text-[10px] font-bold text-[#4B5563] uppercase tracking-widest transition-opacity duration-300 ${isCollapsed ? 'opacity-0 text-center px-0 h-0 overflow-hidden' : 'opacity-100'}`}>System</div>
               <ul className="space-y-1">
                 <NavItem href="#" icon={<BarChart3 size={20} />} label="Reports" isCollapsed={isCollapsed} active={pathname === '#reports'} />
-                <NavItem href="#" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} active={pathname === '#settings'} />
+                <NavItem href="/dashboard/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} active={pathname === '#settings'} />
               </ul>
             </section>
           )}

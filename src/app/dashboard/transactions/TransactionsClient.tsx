@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, Download, Calendar, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, FileText, ArrowLeftRight } from 'lucide-react';
+import { Search, Download, Calendar, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, FileText, ArrowLeftRight, Loader2, BookCheck } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { returnBookAction } from '@/actions/transaction.actions';
+import { toast } from 'sonner';
 
 type StatCounts = {
   all: number;
@@ -19,6 +21,44 @@ interface TransactionsClientProps {
   stats: StatCounts;
   currentSearch: string;
   currentTab: string;
+}
+
+function InlineReturnButton({ tx }: { tx: any }) {
+  const [isReturning, setIsReturning] = useState(false);
+
+  const handleInlineReturn = async () => {
+    // Check if overdue
+    const isOverdue = new Date() > new Date(tx.dueDate);
+    if (isOverdue) {
+      const confirm = window.confirm(`This book is overdue. A fine will be generated. Do you want to process the return?`);
+      if (!confirm) return;
+    }
+
+    setIsReturning(true);
+    try {
+      const result = await returnBookAction(tx.id);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err) {
+      toast.error('Failed to process return.');
+    } finally {
+      setIsReturning(false);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleInlineReturn}
+      disabled={isReturning}
+      className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white rounded-md transition-all text-xs font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {isReturning ? <Loader2 size={14} className="animate-spin" /> : <BookCheck size={14} />}
+      Return
+    </button>
+  );
 }
 
 export default function TransactionsClient({
@@ -243,15 +283,18 @@ export default function TransactionsClient({
                         </td>
 
                         {/* Actions Col */}
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right flex justify-end gap-2">
                           {tx.status === 'ISSUED' && (
-                            <button 
-                              onClick={() => router.push(`/dashboard/transactions/return?id=${tx.id}`)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626] hover:text-white rounded-lg transition-colors text-xs font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 focus:opacity-100"
-                            >
-                              <ArrowLeftRight size={14} />
-                              Return
-                            </button>
+                            <>
+                              <button 
+                                onClick={() => router.push(`/dashboard/transactions/return?id=${tx.id}`)}
+                                title="Open Return Flow"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 border border-[#1F1F1F] text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-colors text-xs font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 focus:opacity-100"
+                              >
+                                <ArrowLeftRight size={14} />
+                              </button>
+                              <InlineReturnButton tx={tx} />
+                            </>
                           )}
                           {tx.status === 'RETURNED' && (
                             <button 

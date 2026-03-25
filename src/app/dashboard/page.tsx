@@ -148,7 +148,7 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
-          <Link href="/dashboard/transactions" className="mt-6 w-full py-2 bg-[#1F1F1F] hover:bg-[#2D2D2D] text-xs font-bold text-white rounded transition-colors uppercase tracking-widest text-center block">
+          <Link href="/dashboard/activity" className="mt-6 w-full py-2 bg-[#1F1F1F] hover:bg-[#2D2D2D] text-xs font-bold text-white rounded transition-colors uppercase tracking-widest text-center block">
             VIEW ALL
           </Link>
         </div>

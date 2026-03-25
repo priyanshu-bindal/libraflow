@@ -66,7 +66,7 @@ export default async function FinesManagementPage({
   return (
     <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#050505]">
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Fines Management</h1>
           <p className="text-sm text-gray-500 mt-1">Track and collect overdue balances from members.</p>
@@ -110,7 +110,7 @@ export default async function FinesManagementPage({
       <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl overflow-hidden shadow-sm">
         
         {/* Table Toolbar / Search */}
-        <div className="p-5 border-b border-[#1F1F1F] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 border-b border-[#1F1F1F] flex sm:flex-row sm:items-center justify-between gap-4">
           <form className="flex-1 max-w-sm relative">
              <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
              <input 

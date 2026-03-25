@@ -7,11 +7,12 @@ export const dynamic = 'force-dynamic';
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string; tab?: string };
+  searchParams: Promise<{ page?: string; search?: string; tab?: string }>;
 }) {
-  const page = Number(searchParams?.page) || 1;
-  const search = searchParams?.search || '';
-  const tab = searchParams?.tab?.toUpperCase() || 'ALL'; // ALL, ISSUED, RETURNED, OVERDUE
+  const resolvedParams = await searchParams;
+  const page = Number(resolvedParams?.page) || 1;
+  const search = resolvedParams?.search || '';
+  const tab = resolvedParams?.tab?.toUpperCase() || 'ALL'; // ALL, ISSUED, RETURNED, OVERDUE
   const limit = 20;
   const skip = (page - 1) * limit;
 
