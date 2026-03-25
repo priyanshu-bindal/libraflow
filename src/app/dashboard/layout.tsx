@@ -1,3 +1,6 @@
+export const runtime = 'nodejs'; // Forces the Node.js runtime instead of Edge
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
