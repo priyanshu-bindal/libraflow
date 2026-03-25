@@ -84,3 +84,26 @@ export async function updateBookAction(id: string, data: any) {
   
   redirect(`/dashboard/books/${id}`);
 }
+
+export async function deleteBookAction(bookId: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    // Safety check: block if any copies are currently issued
+    const activeTransactions = await db.transaction.count({
+      where: { bookId, status: 'ISSUED' },
+    });
+
+    if (activeTransactions > 0) {
+      return {
+        success: false,
+        message: 'Cannot delete: This book is currently issued to a member.',
+      };
+    }
+
+    await db.book.delete({ where: { id: bookId } });
+    revalidatePath('/dashboard/books');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete book:', error);
+    return { success: false, message: 'Failed to delete book. Please try again.' };
+  }
+}

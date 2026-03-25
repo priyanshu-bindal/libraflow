@@ -2,11 +2,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import DeleteBookButton from "@/components/books/DeleteBookButton";
 import { 
   ArrowLeft, 
   ChevronRight, 
   Edit, 
-  Trash2, 
   BookOpen, 
   MoreVertical 
 } from "lucide-react";
@@ -31,7 +31,26 @@ export default async function BookDetailsPage({
 
   // Fallback defaults if values are missing
   const categoryName = book.category?.name || "Uncategorized";
-  const timesBorrowed = 124; // Mock data for now
+
+  const [issuedTransactions, recentActivity, timesBorrowed] = await Promise.all([
+    // Who currently has this book
+    db.transaction.findMany({
+      where: { bookId: id, status: 'ISSUED' },
+      include: { user: { select: { name: true, membershipId: true } } },
+      orderBy: { dueDate: 'asc' },
+    }),
+    // Recent activity (last 6 transactions)
+    db.transaction.findMany({
+      where: { bookId: id },
+      include: { user: { select: { name: true } } },
+      orderBy: { updatedAt: 'desc' },
+      take: 6,
+    }),
+    // Total times this book has ever been borrowed
+    db.transaction.count({ where: { bookId: id } }),
+  ]);
+
+  const activeLoans = issuedTransactions.length;
 
   return (
     <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#0A0A0A] p-8">
@@ -61,14 +80,20 @@ export default async function BookDetailsPage({
             <h2 className="text-2xl font-bold text-white tracking-tight">Book Details</h2>
           </div>
           <div className="flex gap-3">
-            <button className="px-5 py-2 flex items-center gap-2 bg-[#111111] border border-[#1F1F1F] rounded-xl text-slate-400 font-semibold text-sm hover:border-slate-700 hover:text-white transition-all">
+            <Link
+              href={`/dashboard/books/${id}/edit`}
+              className="px-5 py-2 flex items-center gap-2 bg-[#111111] border border-[#1F1F1F] rounded-xl text-slate-400 font-semibold text-sm hover:border-slate-700 hover:text-white transition-all"
+            >
               <Edit size={16} />
               Edit Book
-            </button>
-            <button className="px-5 py-2 flex items-center gap-2 bg-[#450A0A]/40 border border-[#DC2626]/20 rounded-xl text-[#DC2626] font-semibold text-sm hover:bg-[#450A0A]/60 transition-all">
-              <Trash2 size={16} />
-              Delete Book
-            </button>
+            </Link>
+            <DeleteBookButton
+              bookId={id}
+              bookTitle={book.title}
+              bookAuthor={book.author}
+              totalCopies={book.totalCopies}
+              activeLoans={activeLoans}
+            />
           </div>
         </div>
 
@@ -165,98 +190,92 @@ export default async function BookDetailsPage({
 
         {/* Lower Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 pb-12">
-          {/* Left: Current Borrowers */}
+          {/* Left: Currently Issued To */}
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-bold text-white">Currently Issued To</h4>
-              <span className="bg-[#DC2626] text-white px-2 py-0.5 rounded-md text-[11px] font-black">2</span>
+              <span className={`px-2 py-0.5 rounded-md text-[11px] font-black text-white ${activeLoans > 0 ? 'bg-[#DC2626]' : 'bg-slate-700'}`}>
+                {activeLoans}
+              </span>
             </div>
-            
-            <div className="space-y-4">
-              {/* Mock Row 1 */}
-              <div className="flex items-center justify-between p-4 bg-[#0D0D0D] border border-[#1F1F1F] rounded-xl">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-[#DC2626] flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                    JS
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Jordan Smith</p>
-                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">ID: LIB-88219</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-[#DC2626] mb-1.5">Due Mar 15</p>
-                  <span className="px-2 py-1 bg-[#450A0A]/40 text-[#DC2626] border border-[#DC2626]/20 rounded text-[9px] font-black uppercase tracking-wider">
-                    Overdue
-                  </span>
-                </div>
+
+            {issuedTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center text-slate-600">
+                <BookOpen size={32} strokeWidth={1.5} className="mb-3 opacity-40" />
+                <p className="text-sm font-semibold">No active issues</p>
+                <p className="text-xs mt-1">All copies are currently available.</p>
               </div>
-              
-              {/* Mock Row 2 */}
-              <div className="flex items-center justify-between p-4 bg-[#0D0D0D] border border-[#1F1F1F] rounded-xl">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                    ML
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Maya Lin</p>
-                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">ID: LIB-90122</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-400">Due Apr 02</p>
-                </div>
+            ) : (
+              <div className="space-y-3">
+                {issuedTransactions.map((tx) => {
+                  const isOverdue = new Date() > new Date(tx.dueDate);
+                  const initials = tx.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+                  return (
+                    <div key={tx.id} className="flex items-center justify-between p-4 bg-[#0D0D0D] border border-[#1F1F1F] rounded-xl">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm ${isOverdue ? 'bg-[#DC2626]' : 'bg-slate-700'}`}>
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{tx.user.name}</p>
+                          <p className="text-[11px] text-slate-500 font-semibold mt-0.5">ID: {tx.user.membershipId}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-xs font-bold mb-1.5 ${isOverdue ? 'text-[#DC2626]' : 'text-slate-400'}`}>
+                          Due {new Date(tx.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                        {isOverdue && (
+                          <span className="px-2 py-1 bg-[#450A0A]/40 text-[#DC2626] border border-[#DC2626]/20 rounded text-[9px] font-black uppercase tracking-wider">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Right: Reservation Queue & Activity */}
+          {/* Right: Recent Activity */}
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-6 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-bold text-white">Reservation Queue</h4>
-              <span className="bg-slate-700 text-white px-2 py-0.5 rounded-md text-[11px] font-black">1</span>
-            </div>
-            
-            <div className="p-4 bg-[#0D0D0D] border border-[#1F1F1F] rounded-xl mb-8">
-              <div className="flex items-center gap-4">
-                <span className="text-[#DC2626] font-black italic text-lg w-6 text-center">#1</span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white">David Chen</p>
-                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Reserved Mar 10, 2026</p>
-                </div>
-                <button className="p-2 ml-auto text-slate-500 hover:text-white transition-colors">
-                  <MoreVertical size={18} />
-                </button>
-              </div>
-            </div>
+            <h4 className="text-lg font-bold text-white mb-6">Recent Activity</h4>
 
-            <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-300 mb-5 border-b border-[#1F1F1F] pb-3">Recent Activity</h4>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                  <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Returned by</span> Jordan Smith</p>
-                  <p className="text-[10px] text-slate-600 font-medium ml-auto">Mar 12, 10:45 AM</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#DC2626] shadow-[0_0_8px_rgba(220,38,38,0.5)]"></div>
-                  <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Issued to</span> Maya Lin</p>
-                  <p className="text-[10px] text-slate-600 font-medium ml-auto">Mar 10, 02:15 PM</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                  <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Reserved by</span> David Chen</p>
-                  <p className="text-[10px] text-slate-600 font-medium ml-auto">Mar 08, 11:20 AM</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.5)]"></div>
-                  <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Issued to</span> Jordan Smith</p>
-                  <p className="text-[10px] text-slate-600 font-medium ml-auto">Mar 01, 2026</p>
-                </div>
+            {recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center text-slate-600">
+                <p className="text-sm font-semibold">No activity yet</p>
+                <p className="text-xs mt-1">Transactions will appear here once the book is issued.</p>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-5">
+                {recentActivity.map((tx) => {
+                  const isIssued = tx.status === 'ISSUED';
+                  const isReturned = tx.status === 'RETURNED';
+                  const dot = isReturned
+                    ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'
+                    : isIssued
+                    ? 'bg-[#DC2626] shadow-[0_0_8px_rgba(220,38,38,0.5)]'
+                    : 'bg-slate-500';
+                  const label = isReturned ? 'Returned by' : 'Issued to';
+                  const date = new Date(tx.updatedAt);
+                  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  return (
+                    <div key={tx.id} className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                      <p className="text-xs text-slate-400 flex-1 min-w-0">
+                        <span className="text-slate-200 font-semibold">{label}</span>{' '}
+                        <span className="truncate">{tx.user.name}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-600 font-medium whitespace-nowrap">{dateStr}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
+
       </div>
     </main>
   );
