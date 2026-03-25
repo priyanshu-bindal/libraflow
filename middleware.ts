@@ -1,22 +1,26 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
 
-export default auth((request) => {
-  const { nextUrl } = request
-  const isAuthenticated = Boolean(request.auth)
-  const isDashboardRoute = nextUrl.pathname.startsWith('/dashboard')
-  const isLoginRoute = nextUrl.pathname === '/login'
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  const sessionToken =
+    request.cookies.get('authjs.session-token') ||
+    request.cookies.get('__Secure-authjs.session-token')
+
+  const isAuthenticated = Boolean(sessionToken)
+  const isDashboardRoute = pathname.startsWith('/dashboard')
+  const isLoginRoute = pathname === '/login'
 
   if (isDashboardRoute && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/login', nextUrl))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   if (isLoginRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', nextUrl))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: ['/dashboard/:path*', '/login'],
