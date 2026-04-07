@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Book as BookIcon } from 'lucide-react';
 
 const getCategoryColor = (categoryName: string) => {
   const name = categoryName.toLowerCase();
@@ -130,12 +132,20 @@ export default function BookCatalogClient({ initialBooks }: { initialBooks: any[
             key={book.id} 
             className="book-card-hover bg-[#111111] border border-[#1F1F1F] rounded-xl overflow-hidden transition-all group flex flex-col hover:border-slate-700 cursor-pointer"
           >
-            <div className="aspect-[3/4] bg-[#1A1A1A] relative flex items-center justify-center p-8 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div 
-                className="z-10 w-full h-full shadow-2xl rounded-sm transform group-hover:scale-105 transition-transform duration-300 bg-slate-800 bg-cover bg-center" 
-                style={{ backgroundImage: `url('${book.coverUrl || ''}')` }}
-              ></div>
+            <div className="aspect-[3/4] bg-[#1A1A1A] relative flex items-center justify-center overflow-hidden w-full h-full">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+              {book.coverUrl ? (
+                <Image 
+                  src={book.coverUrl}
+                  alt={book.title}
+                  fill
+                  className="object-cover z-0 shadow-2xl rounded-sm transform group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="z-0 w-full h-full flex items-center justify-center bg-slate-800">
+                  <BookIcon className="w-12 h-12 text-slate-500" />
+                </div>
+              )}
               <span className={`absolute top-3 right-3 z-20 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${getCategoryColor(book.category.name)}`}>
                 {book.category.name}
               </span>

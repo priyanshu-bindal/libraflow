@@ -31,6 +31,7 @@ export async function createBookLive(data: any) {
         totalCopies: parseInt(data.totalCopies, 10),
         availableCopies: parseInt(data.availableCopies, 10),
         categoryId: category.id, 
+        coverUrl: data.coverUrl,
       },
     });
   } catch (error) {
@@ -72,6 +73,7 @@ export async function updateBookAction(id: string, data: any) {
         totalCopies: parseInt(data.totalCopies, 10),
         availableCopies: parseInt(data.availableCopies, 10),
         categoryId: category.id, 
+        coverUrl: data.coverUrl,
       },
     });
   } catch (error) {
